@@ -111,26 +111,27 @@ def _process_dataset(name, images, vocab, feature_file):
     features = np.load(feature_file)
 
     dataset = []
-
     # Create a mechanism for monitoring when all threads are finished.
     for image in images:
-        for caption_list in image.captions:
-            for caption in caption_list:
-                for i, word in enumerate(caption):
-                    caption[i] = vocab.word_to_id(word)
+        for caption in image.captions:
+            caption_indices = []
+            for i, word in enumerate(caption):
+                caption_indices.append(vocab.word_to_id(word))
 
-                ind_caption = np.array(caption)
+            ind_caption = np.array(caption_indices)
 
-                input_vec = np.array([features[image.index], ind_caption])
-                print("Appending to dataset image %d\t" % (image.index))
-                dataset.append(input_vec)
+            input_vec = np.array([features[image.index], ind_caption])
+            print("Appending to dataset image %d\t" % (image.index))
+            dataset.append(input_vec)
+
 
     dataset = np.array(dataset)
     print("Final dataset size:%s" % (str(dataset.shape)))
     file_to_save = 'name_' + feature_file
-    if not os.path.exists(file_to_save):
-        os.makedirs(file_to_save)
-
+    print (file_to_save)
+    directory = 'name_./datasets/'
+    if not os.path.exists(directory):
+        os.makedirs(directory)
     np.save(file_to_save, np.array(dataset))
 
 
