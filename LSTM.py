@@ -20,6 +20,14 @@ def build_rnn():
                                   grad_clipping=5.)    
     l_dropout_output = lasagne.layers.DropoutLayer(l_lstm, p=0.5)
     l_output = lasagne.layers.DenseLayer(l_dropout_output, nonlinearity=lasagne.nonlinearities.softmax)
+    
+    #Discuss structure
+    # l_in = lasagne.layers.InputLayer(shape=(None, None, vocab_size))
+    # l_forward_1 = lasagne.layers.LSTMLayer(l_in, N_HIDDEN, grad_clipping=GRAD_CLIP,nonlinearity=lasagne.nonlinearities.tanh)
+    # l_forward_2 = lasagne.layers.LSTMLayer(l_forward_1, N_HIDDEN, grad_clipping=GRAD_CLIP, nonlinearity=lasagne.nonlinearities.tanh, only_return_final=True)
+    #l_out = lasagne.layers.DenseLayer(l_forward_2, num_units=vocab_size, W = lasagne.init.Normal(), nonlinearity=lasagne.nonlinearities.softmax)
+    
+    
     return l_output
         
 def iterate_minibatches(inputs, targets, batchsize, shuffle=False):
@@ -59,6 +67,8 @@ def main():
     params = lasagne.layers.get_all_params(network, trainable=True)
     updates = lasagne.updates.nesterov_momentum(
             loss, params, learning_rate=0.01, momentum=0.9)
+    #this or adagrad???
+    #updates = lasagne.updates.adagrad(loss, params, LEARNING_RATE)
     
     test_prediction = lasagne.layers.get_output(network, deterministic=True)
     test_loss = lasagne.objectives.categorical_crossentropy(test_prediction,
