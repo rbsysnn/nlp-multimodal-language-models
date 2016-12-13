@@ -10,10 +10,7 @@ import json, os
 
 import threading
 import numpy as np
-from paths import VALIDATION_FEATURES_DEF as VALIDATION_FEATURES_DEF
-from paths import VALIDATION_CAPTIONS_DEF as VALIDATION_CAPTIONS_DEF
-from paths import TRAIN_FEATURES_DEF as TRAIN_FEATURES_DEF
-from paths import TRAIN_CAPTIONS_DEF as TRAIN_CAPTIONS_DEF
+import paths
 
 FEATURES_DEF = False
 VERBOSE_DEF  = True
@@ -46,7 +43,7 @@ def _process_metadata(captions_file):
     		caption[i] = word.lower()
     image_metadata.append(ImageMetadata(index, image_id, caption_list))
     num_captions += len(caption_list)
-    if index == 9:
+    if index == 1:
     	break
 
   print("Finished processing %d captions for %d images in %s" %
@@ -102,9 +99,6 @@ def _process_dataset(name, images, vocab, feature_file):
     images = [ImageMetadata(image.index, image.img_url, [caption])
               for image in images for caption in image.captions]
 
-    print(len(images))
-
-
     # Shuffle the ordering of images. Make the randomization repeatable.
     np.random.seed(42)
     np.random.shuffle(images)
@@ -114,24 +108,26 @@ def _process_dataset(name, images, vocab, feature_file):
     # Create a mechanism for monitoring when all threads are finished.
     for image in images:
         for caption in image.captions:
-            caption_indices = []
+            encoded_caption = []
             for i, word in enumerate(caption):
-                caption_indices.append(vocab.word_to_id(word))
-
-            ind_caption = np.array(caption_indices)
-
-            input_vec = np.array([features[image.index], ind_caption])
+                # Encode word to index
+                encoded_caption.append(vocab.word_to_id(word))
+            # Append encoded captions to
+            encoded_caption = np.array(encoded_caption)
+            input_vec = np.array([features[image.index], encoded_caption])
             print("Appending to dataset image %d\t" % (image.index))
             dataset.append(input_vec)
 
-
     dataset = np.array(dataset)
-    print("Final dataset size:%s" % (str(dataset.shape)))
-    file_to_save = 'name_' + feature_file
-    print (file_to_save)
-    directory = 'name_./datasets/'
-    if not os.path.exists(directory):
-        os.makedirs(directory)
+
+    # Save processed data
+    if not os.path.exists(paths.PROCESSED_FOLDER):
+        os.makedirs(paths.PROCESSED_FOLDER)
+    feature_file = str(feature_file).split('/')[-1]
+    file_to_save = paths.PROCESSED_FOLDER + feature_file
+
+
+    print("Final dataset size:%s" % (str(dataset.shape)), 'in ', file_to_save)
     np.save(file_to_save, np.array(dataset))
 
 
@@ -159,15 +155,11 @@ def initialize():
 	Initialize the data.
 	'''
 	features = bool(FLAGS.features)
-	validation_captions_file = FLAGS.valid_capt
-	validation_features_file = FLAGS.valid_feat
-	training_features_file   = FLAGS.train_feat
-	training_captions_file   = FLAGS.train_capt
 
 	print("----------------------------- Parsing targets -----------------------------")
-	train_dataset = _process_metadata(training_captions_file)
-	val_dataset   = _process_metadata(validation_captions_file)
-	
+	train_dataset = _process_metadata(paths.TRAIN_CAPTIONS_DEF)
+	val_dataset   = _process_metadata(paths.VALIDATION_CAPTIONS_DEF)
+
 	if FLAGS.verbose:
 		print("Training Dataset  length: %d"%(len(train_dataset)))
 		print("Test     Dataset  length: %d"%(len(val_dataset )))
@@ -181,8 +173,8 @@ def initialize():
 		print("Vocabulary length:%d "%(len(vocab._vocab)))
 
 	print("---------------------------- Parsing  features ----------------------------")
-	_process_dataset('training',train_dataset, vocab, training_features_file)
-	_process_dataset('test',val_dataset, vocab, validation_features_file)
+	_process_dataset('training',train_dataset, vocab, paths.TRAIN_FEATURES_DEF)
+	_process_dataset('test',val_dataset, vocab, paths.VALIDATION_FEATURES_DEF)
 
 
 def print_flags():
@@ -192,49 +184,19 @@ def print_flags():
   for key, value in vars(FLAGS).items():
     print(key + ' \t:\t ' + str(value))
 
-
-def parse_files(training_features_file = TRAIN_FEATURES_DEF,
-	training_captions_file = TRAIN_CAPTIONS_DEF,
-	validation_features_file= VALIDATION_FEATURES_DEF,
-	validation_captions_file = VALIDATION_CAPTIONS_DEF,features = FEATURES_DEF):
-
-	train_features  = []
-	train_captions  = []
-	test_features   = []
-	test_captions   = []
-
-	if features ==True:
-		print("Gathering image features also...")
-		train_features = np.load(training_features_file)
-		test_features  = np.load(validation_features_file)
-	print("Loading captions...")
-	
-	with open(training_captions_file) as f:
-		train_captions = json.load(f)
-
-	with open(validation_captions_file) as f:
-		test_captions = json.load(f)
-
-	return train_features,train_captions,test_features,test_captions
-
 def main(_):
 	print("Welcome to our show and tell version")
 	print_flags()
 	initialize()
-	
+
 
 if __name__ == '__main__':
   # Command line arguments
   parser = argparse.ArgumentParser()
-  parser.add_argument('--valid_feat' ,type=str,default=VALIDATION_FEATURES_DEF,help='Validation features file')
-  parser.add_argument('--valid_capt' ,type=str,default=VALIDATION_CAPTIONS_DEF,help='Validation captions file')
-  parser.add_argument('--train_feat' ,type=str,default=TRAIN_FEATURES_DEF     ,  help='Training features file')
-  parser.add_argument('--train_capt' ,type=str,default=TRAIN_CAPTIONS_DEF     ,  help='Training captions file')
   parser.add_argument('--features'   ,type=str,default=FEATURES_DEF,help='Parse features (true/false)')
   parser.add_argument('--verbose'    ,type=str,default=VERBOSE_DEF,help='Show further output (true/false)')
   parser.add_argument("--vocab_file" ,type=str,default=VOCAB_FILE,help="Output vocabulary file of word counts.")
-  parser.add_argument("--min_words"   ,type=str,default=MIN_WORD_DEFAULT,help="The minimum number of occurrences of each word "+
+  parser.add_argument("--min_words"  ,type=str,default=MIN_WORD_DEFAULT,help="The minimum number of occurrences of each word "+
   	"in the training set for inclusion in the vocabulary.")
   FLAGS, unparsed = parser.parse_known_args()
   main(None)
-
