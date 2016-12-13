@@ -105,7 +105,7 @@ def main(_):
 
     # Iterate over epochs:
     for epoch in range(100):
-        print("Epoch ", epoch)        
+        print("Epoch ", epoch)
         train_err = 0
         train_batches = 0
         start_time = time.time()

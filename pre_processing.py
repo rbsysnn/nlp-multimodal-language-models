@@ -39,11 +39,9 @@ def _process_metadata(captions_file):
     caption_list = image[1]
     for caption in caption_list:
     	for i, word in enumerate(caption):
-    		caption[i] = word.lower()
+    		caption[i] = word
     image_metadata.append(ImageMetadata(index, image_id, caption_list))
     num_captions += len(caption_list)
-    if index == 1:
-    	break
 
   print("Finished processing %d captions for %d images in %s" %
         (num_captions, len(image_metadata), captions_file.split('/')[-1]))
@@ -118,13 +116,19 @@ def _process_dataset(name, images, vocab, feature_file):
             dataset.append(input_vec)
 
     dataset = np.array(dataset)
-
+    if name == 'training':
+      size = 60000
+    else:
+      size = 20000
+    indices = np.arange(dataset.shape[0])
+    np.random.shuffle(indices)
+    dataset = dataset[indices[0:size]]
     # Save processed data
+
     if not os.path.exists(paths.PROCESSED_FOLDER):
         os.makedirs(paths.PROCESSED_FOLDER)
     feature_file = str(feature_file).split('/')[-1]
     file_to_save = paths.PROCESSED_FOLDER + feature_file
-
 
     print("Final dataset size:%s" % (str(dataset.shape)), 'in ', file_to_save)
     np.save(file_to_save, np.array(dataset))
