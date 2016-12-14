@@ -15,15 +15,15 @@ from collections import Counter
 from lasagne.utils import floatX
 
 
-# In[2]:
+# In[89]:
 
 num_epochs = 50
 num_units_lstm = 100
 batch_size = 50
-vocab_size = 41
+vocab_size = 42
 
 
-# In[58]:
+# In[90]:
 
 SEQUENCE_LENGTH = 32
 MAX_SENTENCE_LENGTH = SEQUENCE_LENGTH - 3 # 1 for image, 1 for start token, 1 for end token
@@ -32,7 +32,7 @@ CNN_FEATURE_SIZE = 4096L
 EMBEDDING_SIZE = 256
 
 
-# In[59]:
+# In[91]:
 
 def calc_cross_ent(net_output, mask, targets):
     # Helper function to calculate the cross entropy error
@@ -42,7 +42,7 @@ def calc_cross_ent(net_output, mask, targets):
     return cost
 
 
-# In[60]:
+# In[94]:
 
 # cnn feature vector
 x_cnn_sym = T.matrix()
@@ -118,33 +118,53 @@ f_val = theano.function([x_cnn_sym, x_sentence_sym, mask_sym, y_sentence_sym], l
    
 
 
-# In[61]:
+# In[95]:
 
 train_data = np.load('name_/datasets/merged_train.npy')
 
 
-# In[62]:
+# In[114]:
 
 #Test method
 
 x_cnn= floatX(np.array([x[0] for x in train_data]))
-x_sentence = np.zeros((50, SEQUENCE_LENGTH - 1), dtype='int32')
+x_sentence = np.zeros((50, SEQUENCE_LENGTH-1), dtype='int32')
 y_sentence = np.zeros((50, SEQUENCE_LENGTH), dtype='int32')
 
 mask = np.zeros((50, SEQUENCE_LENGTH), dtype='bool')
 for i in range(len(train_data)):
     for j in range(len(train_data[i][1])):
-        mask[i][j] = True
+        mask[i,j] = True
 
 
-# In[63]:
+# In[120]:
+
+print mask[1]
+
+
+# In[121]:
+
+for k in range(len(train_data)):
+    for l in range(len(train_data[k][1])):
+        x_sentence[k][l] = train_data[k][1][l]
+        y_sentence[k][l] = train_data[k][1][l]
+
+
+# In[122]:
+
+print (len(x_sentence[0]))
+print (len(y_sentence[0]))
+print (len(mask[0]))
+
+
+# In[123]:
 
 loss_train, norm = f_train(x_cnn, x_sentence, mask, y_sentence)
 
 
-# In[65]:
+# In[126]:
 
-print norm
+print loss_train
 
 
 # In[ ]:
