@@ -178,12 +178,13 @@ for step in range(max_steps):
 		start =  time.time()
 		x_cnn, x_sentence, y_sentence, mask = prep_batch_for_network(train_data,BATCH_SIZE)
 
-		loss_train, norm = f_train(x_cnn, x_sentence, mask, y_sentence)
+		train_loss, norm = f_train(x_cnn, x_sentence, mask, y_sentence)
+		duration = start - time.time()
+		
 		out =  \
 			'==================================================================================\n'+\
 			'Step \t%d/%d:\t train_loss =  %8e  \t norm %3.5f (%.4f sec)\n' % (step ,  max_steps , train_loss ,norm , duration)+\
 			'==================================================================================\n'
-		duration = start - time.time()
 
 		f.write(out+"\n")
 		f.flush()

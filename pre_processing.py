@@ -16,6 +16,8 @@ from vocabulary import Vocabulary
 FEATURES_DEF = False
 VERBOSE_DEF  = True
 VOCAB_FILE 	 = 'vocab.txt'
+TEST_SIZE    = 20000
+TRAIN_SIZE   = 60000
 MIN_WORD_DEFAULT = 4
 ImageMetadata = namedtuple("ImageMetadata",
                            ["index","img_url", "captions"])
@@ -117,9 +119,9 @@ def _process_dataset(name, images, vocab, feature_file):
 
     dataset = np.array(dataset)
     if name == 'training':
-      size = 60000
+      size = TRAIN_SIZE
     else:
-      size = 20000
+      size = TEST_SIZE
     indices = np.arange(dataset.shape[0])
     np.random.shuffle(indices)
     dataset = dataset[indices[0:size]]
