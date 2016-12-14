@@ -10,12 +10,31 @@ import numpy as np
 import theano
 import theano.tensor as T
 import lasagne
+from theano import function, config, shared, sandbox
 
 from collections import Counter
 from lasagne.utils import floatX
 import lstm_utils
+import time
+# # In[2]:
+# vlen = 10 * 30 * 768  # 10 x #cores x # threads per core
+# iters = 100
 
-# In[2]:
+# rng = np.random.RandomState(22)
+# x = shared(np.asarray(rng.rand(vlen), config.floatX))
+# f = function([], T.exp(x))
+# print(f.maker.fgraph.toposort())
+# t0 = time.time()
+# for i in range(iters):
+# 	r = f()
+# t1 = time.time()
+# print("Looping %d times took %f seconds" % (iters, t1 - t0))
+# print("Result is %s" % (r,))
+# if np.any([isinstance(x.op, T.Elemwise) for x in f.maker.fgraph.toposort()]):
+# 	print('Used the cpu')
+# else:
+# 	print('Used the gpu')
+
 
 num_epochs = 50
 num_units_lstm = 100
@@ -25,7 +44,7 @@ vocab_size = lstm_utils.get_num_classes('vocab.txt') + 1
 
 # In[58]:
 
-SEQUENCE_LENGTH = 32
+SEQUENCE_LENGTH = 48
 MAX_SENTENCE_LENGTH = SEQUENCE_LENGTH - 3 # 1 for image, 1 for start token, 1 for end token
 BATCH_SIZE = 50
 CNN_FEATURE_SIZE = 4096L
@@ -132,17 +151,12 @@ f_val = theano.function([x_cnn_sym, x_sentence_sym, mask_sym, y_sentence_sym], l
 print('Preparing data...')
 train_data,test_data,_ = lstm_utils.get_merged(one_hot=False)
 
-for i,caption in enumerate(train_data.captions[:]):
-	if len(caption) > MAX_SENTENCE_LENGTH:
-		np.delete(train_data.captions,i,0)
-		np.delete(train_data.features,i,0)
-print('train data reduced to: %s'%(train_data.captions.shape[0]))
-def prep_batch_for_network(batch_size):
-	
-	features,captions = train_data.next_batch(batch_size)
 
-	x_cnn = floatX(np.zeros((len(features), CNN_FEATURE_SIZE)))
-	x_cnn = []
+
+def prep_batch_for_network(dataset,batch_size):
+	features,captions = dataset.next_batch(batch_size)
+
+	x_cnn = floatX(np.zeros((len(features), 4096)))
 	x_sentence = np.zeros((len(captions), SEQUENCE_LENGTH - 1), dtype='int32')
 	y_sentence = np.zeros((len(captions), SEQUENCE_LENGTH), dtype='int32')
 	mask = np.zeros((len(captions), SEQUENCE_LENGTH), dtype='bool')
@@ -157,20 +171,39 @@ def prep_batch_for_network(batch_size):
 			i += 1
 	return x_cnn, x_sentence, y_sentence, mask
 
-
-
-for iteration in range(20):
+import time
+f = open('results.txt','r')
+max_steps = 20000
+for step in range(max_steps):
 		
-		x_cnn, x_sentence, y_sentence, mask = prep_batch_for_network(BATCH_SIZE)
+		start =  time.time()
+		x_cnn, x_sentence, y_sentence, mask = prep_batch_for_network(train_data,BATCH_SIZE)
+
 		loss_train, norm = f_train(x_cnn, x_sentence, mask, y_sentence)
-		print('Iteration {}, loss_train: {}, norm: {}'.format(iteration, loss_train, norm))
-		# if not iteration % 250:
-		#     
-		#     try:
-		#         batch = get_data_batch(dataset, BATCH_SIZE, split='val')
-		#         x_cnn, x_sentence, y_sentence, mask = prep_batch_for_network(batch)
-		#         loss_val = f_val(x_cnn, x_sentence, mask, y_sentence)
-		#         print('Val loss: {}'.format(loss_val))
-		#     except IndexError:
-		#         continue 
+		out =  \
+			'==================================================================================\n'+\
+			'Step \t%d/%d:\t train_loss =  %8e  \t norm %3.5f (%.4f sec)\n' % (step ,  max_steps , train_loss ,norm , duration)+\
+			'==================================================================================\n'
+		duration = start - time.time()
+
+		f.write(out+"\n")
+		f.flush()
+		start = time.time()
+		if not step % 250:
+			duration = start - time.time()
+			try:
+				x_cnn, x_sentence, y_sentence, mask = prep_batch_for_network(test_data,BATCH_SIZE)
+				loss_val = f_val(x_cnn, x_sentence, mask, y_sentence)
+				out =  \
+					'==================================================================================\n'+\
+					'Step \t%d/%d:\t train_loss =  %8e  (%.4f sec)\n' % (step ,  max_steps , loss_val , duration)+\
+					'==================================================================================\n'
+				start = time.time()
+				f.write(out+"\n")
+				f.flush()
+			except IndexError:
+				start = time.time()
+				continue 
+
+f.close()
 
