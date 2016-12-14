@@ -1,3 +1,8 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
+import lstm_utils
 import theano
 import theano.tensor as T
 import lasagne
@@ -6,12 +11,13 @@ import argparse
 import numpy as np
 import paths
 import time
-
 FEATURES_DIMENSION = 4096
 CAPTION_DIMENSION = 20 # arbitrary for now
 NUM_UNITS = 10 # arbitrary for now
-
+BATCH_SIZE = 128
 # run as python LSTM.py --is_train True
+
+
 
 def build_rnn():
     l_input = lasagne.layers.InputLayer(shape=(None, FEATURES_DIMENSION))
@@ -23,30 +29,21 @@ def build_rnn():
 
     return l_output
 
-def iterate_minibatches(inputs, targets, batchsize, shuffle=False):
-    assert len(inputs) == len(targets)
-    if shuffle:
-        indices = np.arange(len(inputs))
-        np.random.shuffle(indices)
-    for start_idx in range(0, len(inputs) - batchsize + 1, batchsize):
-        if shuffle:
-            excerpt = indices[start_idx:start_idx + batchsize]
-        else:
-            excerpt = slice(start_idx, start_idx + batchsize)
-        yield inputs[excerpt], targets[excerpt]
+
 
 def main(_):
+
+
     # Load the dataset
-    if FLAGS.is_train == 'True':
-        print("----------------------------- Loading training data -----------------------------")
-        train = np.load(paths.PROCESSED_FOLDER + 'merged_train.npy')
-        x = train[:, 0]
-        y = train[:, 1]
-    else:
-        print("----------------------------- Loading validation data -----------------------------")
-        train = np.load(paths.PROCESSED_FOLDER + 'merged_val.npy')
-        x = train[:, 0]
-        y = train[:, 1]
+
+    print("----------------------------- Loading training/test data -----------------------------")
+    
+    train_data,test_data,_ = lstm_utils.get_merged(one_hot=False)
+
+    print(train_data.features.shape,train_data.captions.shape,'training data features/')
+    print(test_data.features.shape,test_data.captions.shape,'test data')
+
+
 
     print('Placeholder variables')
     # Prepare Theano variables for inputs and targets
@@ -55,9 +52,9 @@ def main(_):
 
     print('Build rnn')
     # Input layer
-    l_input = lasagne.layers.InputLayer(shape=(None, None, FEATURES_DIMENSION))
+    l_input = lasagne.layers.InputLayer(shape=(None, FEATURES_DIMENSION))
     # Get shape
-    batch_size, seq_length, _ = l_input.input_var.shape
+    batch_size, seq_length = l_input.input_var.shape
     # RNN layer
     l_lstm = lasagne.layers.LSTMLayer(l_input, num_units=NUM_UNITS)
     # Flatten
@@ -96,24 +93,20 @@ def main(_):
     # Compile a function performing a training step on a mini-batch
     train_fn = theano.function([l_input.input_var, target_var], loss, updates=updates)
 
-    print('hiiiiii, jeijei')
 
     # Compile a second function computing the validation loss and accuracy:
     val_fn = theano.function([l_input.input_var, target_var], loss)
 
-    print("Starting training...")
+    print("Starting training...sampling batch size %s"%(FLAGS>batch_size))
 
     # Iterate over epochs:
     for epoch in range(100):
         print("Epoch ", epoch)
         train_err = 0
-        train_batches = 0
         start_time = time.time()
-        for batch in iterate_minibatches(x, y, 500, shuffle=True):
-            print("Iterating batch ...")
-            inputs, targets = batch
-            train_err += train_fn(inputs, targets)
-            train_batches += 1
+        inputs, targets = train_data.next_batch(FLAGS.batch_size)
+        train_err += train_fn(inputs, targets)
+        print('Training loss',train_err)
 
 def print_flags():
     """
@@ -127,6 +120,7 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument('--is_train', type = str, default = True,
                       help='Training or Testing')
+  parser.add_argument('--batch_size',type=int,default= BATCH_SIZE,help ='Batch size for training ')
 
   FLAGS, unparsed = parser.parse_known_args()
 

@@ -13,14 +13,14 @@ import lasagne
 
 from collections import Counter
 from lasagne.utils import floatX
-
+import lstm_utils
 
 # In[2]:
 
 num_epochs = 50
 num_units_lstm = 100
 batch_size = 50
-vocab_size = 41
+vocab_size = lstm_utils.get_num_classes('vocab.txt') + 1
 
 
 # In[58]:
@@ -35,15 +35,15 @@ EMBEDDING_SIZE = 256
 # In[59]:
 
 def calc_cross_ent(net_output, mask, targets):
-    # Helper function to calculate the cross entropy error
-    preds = T.reshape(net_output, (-1, vocab_size))
-    targets = T.flatten(targets)
-    cost = T.nnet.categorical_crossentropy(preds, targets)[T.flatten(mask).nonzero()]
-    return cost
+		# Helper function to calculate the cross entropy error
+		preds = T.reshape(net_output, (-1, vocab_size))
+		targets = T.flatten(targets)
+		cost = T.nnet.categorical_crossentropy(preds, targets)[T.flatten(mask).nonzero()]
+		return cost
 
 
 # In[60]:
-
+print('Setting placeholders')
 # cnn feature vector
 x_cnn_sym = T.matrix()
 
@@ -55,14 +55,14 @@ mask_sym = T.imatrix()
 
 # ground truth for the RNN output
 y_sentence_sym = T.imatrix()    
-
+print('Building model...')
 # Create model
 l_input_sentence = lasagne.layers.InputLayer((BATCH_SIZE, SEQUENCE_LENGTH - 1))
  
 l_sentence_embedding = lasagne.layers.EmbeddingLayer(l_input_sentence, input_size=vocab_size,output_size=EMBEDDING_SIZE)
 
 l_input_cnn = lasagne.layers.InputLayer((BATCH_SIZE, CNN_FEATURE_SIZE))
-   
+	 
 l_cnn_embedding = lasagne.layers.DenseLayer(l_input_cnn, num_units=EMBEDDING_SIZE, nonlinearity=lasagne.nonlinearities.identity)
 
 l_cnn_embedding = lasagne.layers.ReshapeLayer(l_cnn_embedding, ([0], 1, [1]))
@@ -71,26 +71,27 @@ l_rnn_input = lasagne.layers.ConcatLayer([l_cnn_embedding, l_sentence_embedding]
 
 l_dropout_input = lasagne.layers.DropoutLayer(l_rnn_input, p=0.5)
 l_lstm = lasagne.layers.LSTMLayer(l_dropout_input, num_units=EMBEDDING_SIZE, unroll_scan=True, grad_clipping=5.)
-   
+	 
 l_dropout_output = lasagne.layers.DropoutLayer(l_lstm, p=0.5)
-   
+	 
 l_shp = lasagne.layers.ReshapeLayer(l_dropout_output, (-1, EMBEDDING_SIZE))
 
 l_decoder = lasagne.layers.DenseLayer(l_shp, num_units=vocab_size, nonlinearity=lasagne.nonlinearities.softmax)
 
 l_out = lasagne.layers.ReshapeLayer(l_decoder, (BATCH_SIZE, SEQUENCE_LENGTH, vocab_size))
-   
-   
-   
-   
-   #Loss
+	 
+	 
+print('Building predictive function...')
+	 
+	 
+	 #Loss
 prediction = lasagne.layers.get_output(l_out, {
-               l_input_sentence: x_sentence_sym,
-               l_input_cnn: x_cnn_sym
-               })
+							 l_input_sentence: x_sentence_sym,
+							 l_input_cnn: x_cnn_sym
+							 })
 loss = T.mean(calc_cross_ent(prediction, mask_sym, y_sentence_sym))
 
-   #updates
+	 #updates
 MAX_GRAD_NORM = 15
 
 all_params = lasagne.layers.get_all_params(l_out, trainable=True)
@@ -98,56 +99,78 @@ all_params = lasagne.layers.get_all_params(l_out, trainable=True)
 all_grads = T.grad(loss, all_params)
 all_grads = [T.clip(g, -5, 5) for g in all_grads]
 all_grads, norm = lasagne.updates.total_norm_constraint(
-   all_grads, MAX_GRAD_NORM, return_norm=True)
+	 all_grads, MAX_GRAD_NORM, return_norm=True)
 
+
+print('Building network optimizer...')
 updates = lasagne.updates.adam(all_grads, all_params, learning_rate=0.001)
 
-   
+	 
 #test_prediction = lasagne.layers.get_output(network, deterministic=True)
 #test_loss = lasagne.objectives.categorical_crossentropy(test_prediction,target_var)
 #test_loss = test_loss.mean()
 #test_acc = T.mean(T.eq(T.argmax(test_prediction, axis=1), target_var),  dtype=theano.config.floatX)
 
+print('Building training/test operations...')
 f_train = theano.function([x_cnn_sym, x_sentence_sym, mask_sym, y_sentence_sym],
-                         [loss, norm],
-                         updates=updates
-                        )
+												 [loss, norm],
+												 updates=updates
+												)
 
 f_val = theano.function([x_cnn_sym, x_sentence_sym, mask_sym, y_sentence_sym], loss)
-   
-   
+	 
 
 
 # In[61]:
 
-train_data = np.load('name_/datasets/merged_train.npy')
+# train_data = np.load('datasets/processed/merged_train.npy')
 
 
 # In[62]:
 
 #Test method
+print('Preparing data...')
+train_data,test_data,_ = lstm_utils.get_merged(one_hot=False)
 
-x_cnn= floatX(np.array([x[0] for x in train_data]))
-x_sentence = np.zeros((50, SEQUENCE_LENGTH - 1), dtype='int32')
-y_sentence = np.zeros((50, SEQUENCE_LENGTH), dtype='int32')
+for i,caption in enumerate(train_data.captions[:]):
+	if len(caption) > MAX_SENTENCE_LENGTH:
+		np.delete(train_data.captions,i,0)
+		np.delete(train_data.features,i,0)
+print('train data reduced to: %s'%(train_data.captions.shape[0]))
+def prep_batch_for_network(batch_size):
+	
+	features,captions = train_data.next_batch(batch_size)
 
-mask = np.zeros((50, SEQUENCE_LENGTH), dtype='bool')
-for i in range(len(train_data)):
-    for j in range(len(train_data[i][1])):
-        mask[i][j] = True
+	x_cnn = floatX(np.zeros((len(features), CNN_FEATURE_SIZE)))
+	x_cnn = []
+	x_sentence = np.zeros((len(captions), SEQUENCE_LENGTH - 1), dtype='int32')
+	y_sentence = np.zeros((len(captions), SEQUENCE_LENGTH), dtype='int32')
+	mask = np.zeros((len(captions), SEQUENCE_LENGTH), dtype='bool')
+	for j in range(len(features)):
+
+		x_cnn[j] = features[j]
+		i = 0
+		for word in captions[j]:
+			mask[j,i] = True
+			y_sentence[j, i] = word
+			x_sentence[j, i] = word
+			i += 1
+	return x_cnn, x_sentence, y_sentence, mask
 
 
-# In[63]:
 
-loss_train, norm = f_train(x_cnn, x_sentence, mask, y_sentence)
-
-
-# In[65]:
-
-print norm
-
-
-# In[ ]:
-
-
+for iteration in range(20):
+		
+		x_cnn, x_sentence, y_sentence, mask = prep_batch_for_network(BATCH_SIZE)
+		loss_train, norm = f_train(x_cnn, x_sentence, mask, y_sentence)
+		print('Iteration {}, loss_train: {}, norm: {}'.format(iteration, loss_train, norm))
+		# if not iteration % 250:
+		#     
+		#     try:
+		#         batch = get_data_batch(dataset, BATCH_SIZE, split='val')
+		#         x_cnn, x_sentence, y_sentence, mask = prep_batch_for_network(batch)
+		#         loss_val = f_val(x_cnn, x_sentence, mask, y_sentence)
+		#         print('Val loss: {}'.format(loss_val))
+		#     except IndexError:
+		#         continue 
 
