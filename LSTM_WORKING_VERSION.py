@@ -129,7 +129,7 @@ updates = lasagne.updates.adam(all_grads, all_params, learning_rate=0.001)
 #test_loss = lasagne.objectives.categorical_crossentropy(test_prediction,target_var)
 #test_loss = test_loss.mean()
 #test_acc = T.mean(T.eq(T.argmax(test_prediction, axis=1), target_var),  dtype=theano.config.floatX)
-
+f = open('results.txt','w+')
 print('Building training/test operations...')
 f_train = theano.function([x_cnn_sym, x_sentence_sym, mask_sym, y_sentence_sym],
 												 [loss, norm],
@@ -171,8 +171,7 @@ def prep_batch_for_network(dataset,batch_size):
 			i += 1
 	return x_cnn, x_sentence, y_sentence, mask
 
-import time
-f = open('results.txt','r')
+
 max_steps = 20000
 for step in range(max_steps):
 		
