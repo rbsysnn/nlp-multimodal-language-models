@@ -4,6 +4,7 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
+
 class DataSet(object):
   """
   Utility class to handle dataset structure.
@@ -94,7 +95,7 @@ def dense_to_one_hot(captions_dense,num_classes):
   captions_one_hot.flat[index_offset + captions_dense.ravel()] = 1
 
 
-def read_data_sets(data_dir, one_hot = False, validation_size = 0):
+def read_data_sets(data_dir, one_hot = False, validation_size = 0,max_length):
   """
   Returns the dataset readed from data_dir.
   Uses or not uses one-hot encoding for the captions.
@@ -114,6 +115,8 @@ def read_data_sets(data_dir, one_hot = False, validation_size = 0):
   captions = []
   j = 0
   while j < len(dataset):
+    if len(dataset[j][1]) > max_length:
+      continue:
     feature = dataset[j][0]
     caption = dataset[j][1]
     features.append(feature)
@@ -128,6 +131,8 @@ def read_data_sets(data_dir, one_hot = False, validation_size = 0):
   captions = []
   j = 0
   while j < len(dataset):
+    if len(dataset[j][1]) > max_length: 
+      continue:
     feature = dataset[j][0]
     caption = dataset[j][1]
     features.append(feature)
@@ -137,6 +142,7 @@ def read_data_sets(data_dir, one_hot = False, validation_size = 0):
   test_features = np.array(features)
   test_captions = np.array(captions)
   print('========================== LOADED features =======================================')
+  print(train_features.shape[0],"\n",test_features.shape[0],"Test and train size")
   # Apply one-hot encoding if specified
   if one_hot:
     print('apply one-hot encoding')
@@ -163,7 +169,7 @@ def read_data_sets(data_dir, one_hot = False, validation_size = 0):
   return train,test,validation
 
 
-def get_merged(data_dir = 'datasets/processed/', one_hot = True, validation_size = 0):
+def get_merged(data_dir = 'datasets/processed/', one_hot = False, validation_size = 0):
   """
   Prepares CIFAR10 dataset.
 
@@ -175,4 +181,4 @@ def get_merged(data_dir = 'datasets/processed/', one_hot = True, validation_size
   Returns:
     Train, Validation, Test Datasets
   """
-  return read_data_sets(data_dir, one_hot, validation_size)
+  return read_data_sets(data_dir, one_hot, validation_size,max_length = 29)

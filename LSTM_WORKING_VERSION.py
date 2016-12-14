@@ -44,7 +44,7 @@ vocab_size = lstm_utils.get_num_classes('vocab.txt') + 1
 
 # In[58]:
 
-SEQUENCE_LENGTH = 48
+SEQUENCE_LENGTH = 32
 MAX_SENTENCE_LENGTH = SEQUENCE_LENGTH - 3 # 1 for image, 1 for start token, 1 for end token
 BATCH_SIZE = 50
 CNN_FEATURE_SIZE = 4096L
@@ -149,7 +149,7 @@ f_val = theano.function([x_cnn_sym, x_sentence_sym, mask_sym, y_sentence_sym], l
 
 #Test method
 print('Preparing data...')
-train_data,test_data,_ = lstm_utils.get_merged(one_hot=False)
+train_data,test_data,_ = lstm_utils.get_merged(one_hot=False,max_length = MAX_SENTENCE_LENGTH)
 
 
 
@@ -180,7 +180,7 @@ for step in range(max_steps):
 
 		train_loss, norm = f_train(x_cnn, x_sentence, mask, y_sentence)
 		duration = start - time.time()
-		
+
 		out =  \
 			'==================================================================================\n'+\
 			'Step \t%d/%d:\t train_loss =  %8e  \t norm %3.5f (%.4f sec)\n' % (step ,  max_steps , train_loss ,norm , duration)+\
