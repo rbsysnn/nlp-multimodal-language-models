@@ -4,7 +4,7 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
-
+import os
 class DataSet(object):
   """
   Utility class to handle dataset structure.
@@ -95,7 +95,7 @@ def dense_to_one_hot(captions_dense,num_classes):
   captions_one_hot.flat[index_offset + captions_dense.ravel()] = 1
 
 
-def read_data_sets(data_dir, one_hot = False, validation_size = 0,max_length):
+def read_data_sets(data_dir, one_hot, validation_size,max_length):
   """
   Returns the dataset readed from data_dir.
   Uses or not uses one-hot encoding for the captions.
@@ -116,12 +116,13 @@ def read_data_sets(data_dir, one_hot = False, validation_size = 0,max_length):
   j = 0
   while j < len(dataset):
     if len(dataset[j][1]) > max_length:
-      continue:
+      j += 1
+      continue
     feature = dataset[j][0]
     caption = dataset[j][1]
     features.append(feature)
     captions.append(caption)
-    j +=1
+    j +=1 
 
   train_features = np.array(features)
   train_captions = np.array(captions)
@@ -132,7 +133,8 @@ def read_data_sets(data_dir, one_hot = False, validation_size = 0,max_length):
   j = 0
   while j < len(dataset):
     if len(dataset[j][1]) > max_length: 
-      continue:
+      j += 1
+      continue
     feature = dataset[j][0]
     caption = dataset[j][1]
     features.append(feature)
@@ -141,8 +143,16 @@ def read_data_sets(data_dir, one_hot = False, validation_size = 0,max_length):
 
   test_features = np.array(features)
   test_captions = np.array(captions)
+  if not os.path.exists(data_dir+'/'+str(max_length)):
+    os.mkdir(data_dir+'/'+str(max_length))
+
+  np.save(data_dir+'/'+str(max_length)+'/train_features.npy',train_features)
+  np.save(data_dir+'/'+str(max_length)+'/train_captions.npy',train_captions)
+
+  np.save(data_dir+'/'+str(max_length)+'/test_features.npy',test_features)
+  np.save(data_dir+'/'+str(max_length)+'/test_captions.npy',test_captions)
   print('========================== LOADED features =======================================')
-  print(train_features.shape[0],"\n",test_features.shape[0],"Test and train size")
+  print(train_features.shape[0],"\t",test_features.shape[0],"Test and train size")
   # Apply one-hot encoding if specified
   if one_hot:
     print('apply one-hot encoding')
@@ -169,7 +179,7 @@ def read_data_sets(data_dir, one_hot = False, validation_size = 0,max_length):
   return train,test,validation
 
 
-def get_merged(data_dir = 'datasets/processed/', one_hot = False, validation_size = 0):
+def get_merged(data_dir = 'datasets/processed/', one_hot = False, validation_size = 0,max_length=29):
   """
   Prepares CIFAR10 dataset.
 
@@ -181,4 +191,40 @@ def get_merged(data_dir = 'datasets/processed/', one_hot = False, validation_siz
   Returns:
     Train, Validation, Test Datasets
   """
-  return read_data_sets(data_dir, one_hot, validation_size,max_length = 29)
+  return read_data_sets(data_dir, one_hot, validation_size,max_length)
+
+
+def get_prepared_merged(data_dir = './datasets/processed', one_hot = False, validation_size = 0,max_length=29):
+  
+
+  test_features =  np.load(data_dir+'/'+str(max_length)+'/test_features.npy')
+  test_captions =  np.load(data_dir+'/'+str(max_length)+'/test_captions.npy')
+  train_features = np.load(data_dir+'/'+str(max_length)+'/train_features.npy')
+  train_captions = np.load(data_dir+'/'+str(max_length)+'/train_captions.npy')
+  
+  print('========================== LOADED ready features of length %d ======================================='%(max_length))
+  print(train_features.shape[0],"\t",test_features.shape[0],"Test and train size")
+  # Apply one-hot encoding if specified
+  if one_hot:
+    print('apply one-hot encoding')
+    num_classes =  get_num_classes(filename='vocab.txt')
+    train_captions = dense_to_one_hot(train_captions, num_classes)
+    test_captions = dense_to_one_hot(test_captions, num_classes)
+
+
+  # Subsample the validation set from the train set
+  if not 0 <= validation_size <= len(train_features):
+    raise ValueError("Validation size should be between 0 and {0}. Received: {1}.".format(
+        len(train_features), validation_size))
+
+
+  validation_features = test_features[:validation_size]
+  validation_captions = train_captions[:validation_size]
+  test_features = test_features[validation_size:]
+  train_captions = train_captions[validation_size:]
+
+  # Create datasets
+  train = DataSet(train_features, train_captions)
+  validation = DataSet(validation_features, validation_captions)
+  test = DataSet(test_features, test_captions)
+  return train,test,validation
