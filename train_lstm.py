@@ -171,6 +171,8 @@ def train():
 												 updates=updates
 												)
 	f_val = theano.function([x_cnn_sym, x_sentence_sym, mask_sym, y_sentence_sym], loss_op)
+
+	print("Starting training...")
 	max_steps = FLAGS.max_steps
 	for step in range(max_steps):
 		start =  time.time()
@@ -192,7 +194,7 @@ def train():
 		if step % FLAGS.eval_freq == 0:
 			duration = time.time() - start
 			try:
-				x_cnn, x_sentence, y_sentence, mask = prep_batch_for_network(test_data,BATCH_SIZE)
+				x_cnn, x_sentence, y_sentence, mask = prep_batch_for_network(test_data,FLAGS.batch_size)
 				loss_val = f_val(x_cnn, x_sentence, mask, y_sentence)
 				out =  \
 					'==================================================================================\n'+\
