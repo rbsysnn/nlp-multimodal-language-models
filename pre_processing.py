@@ -104,6 +104,7 @@ def _process_dataset(name, images, vocab, feature_file):
     features = np.load(feature_file)
 
     dataset = []
+    urls = []
     # Create a mechanism for monitoring when all threads are finished.
     for image in images:
         for caption in image.captions:
@@ -114,10 +115,14 @@ def _process_dataset(name, images, vocab, feature_file):
             # Append encoded captions to
             encoded_caption = np.array(encoded_caption)
             input_vec = np.array([features[image.index], encoded_caption])
-            print("Appending to dataset image %d\t" % (image.index))
+          
+            print("Appending to dataset image %d\t with url %d" % (image.index,image.img_url))
+
             dataset.append(input_vec)
+            urls.append(image.img_url)
 
     dataset = np.array(dataset)
+    urls = np.array(urls)
     if name == 'training':
       size = TRAIN_SIZE
     else:
@@ -125,6 +130,7 @@ def _process_dataset(name, images, vocab, feature_file):
     indices = np.arange(dataset.shape[0])
     np.random.shuffle(indices)
     dataset = dataset[indices[0:size]]
+    urls = urls[indices[0:size]]
     # Save processed data
 
     if not os.path.exists(paths.PROCESSED_FOLDER):
@@ -132,8 +138,9 @@ def _process_dataset(name, images, vocab, feature_file):
     feature_file = str(feature_file).split('/')[-1]
     file_to_save = paths.PROCESSED_FOLDER + feature_file
 
-    print("Final dataset size:%s" % (str(dataset.shape)), 'in ', file_to_save)
-    np.save(file_to_save, np.array(dataset))
+    print("Final dataset size:%s,urls:%s" % (str(dataset.shape),str(urls.shape)), 'in ', file_to_save)
+    np.save(file_to_save, dataset)
+    np.save(file_to_save+'url',urls)
 
 def initialize():
 	'''
@@ -160,6 +167,7 @@ def initialize():
 	print("---------------------------- Parsing  features ----------------------------")
 	_process_dataset('training',train_dataset, vocab, paths.TRAIN_FEATURES_DEF)
 	_process_dataset('test',val_dataset, vocab, paths.VALIDATION_FEATURES_DEF)
+
 
 
 def print_flags():
