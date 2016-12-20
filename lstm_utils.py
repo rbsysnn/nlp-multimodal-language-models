@@ -5,6 +5,9 @@ from __future__ import print_function
 
 import numpy as np
 import os
+from PIL import Image
+import urllib
+
 class DataSet(object):
   """
   Utility class to handle dataset structure.
@@ -72,11 +75,11 @@ class DataSet(object):
     return self._features[start:end], self._captions[start:end]
 
 
-def get_num_classes(filename='vocab.txt'):
+def get_num_classes(filename):
   with open(filename) as f:
         for i, l in enumerate(f):
             pass
-  return i + 2
+  return i + 1
 
 def dense_to_one_hot(captions_dense,num_classes):
   """
@@ -167,10 +170,12 @@ def read_data_sets(data_dir, one_hot, validation_size,max_length):
         len(train_features), validation_size))
 
 
-  validation_features = test_features[:validation_size]
+  validation_features = train_features[:validation_size]
   validation_captions = train_captions[:validation_size]
-  test_features = test_features[validation_size:]
+  train_features = train_features[validation_size:]
   train_captions = train_captions[validation_size:]
+  
+
 
   # Create datasets
   train = DataSet(train_features, train_captions)
@@ -194,7 +199,7 @@ def get_merged(data_dir = 'datasets/processed/', one_hot = False, validation_siz
   return read_data_sets(data_dir, one_hot, validation_size,max_length)
 
 
-def get_prepared_merged(data_dir = './datasets/processed', one_hot = False, validation_size = 0,max_length=29):
+def get_prepared_merged(data_dir = './datasets/processed', one_hot = False, validation_size = 0,max_length=29,filename='vocab.txt'):
   
 
   test_features =  np.load(data_dir+'/'+str(max_length)+'/test_features.npy')
@@ -207,7 +212,7 @@ def get_prepared_merged(data_dir = './datasets/processed', one_hot = False, vali
   # Apply one-hot encoding if specified
   if one_hot:
     print('apply one-hot encoding')
-    num_classes =  get_num_classes(filename='vocab.txt')
+    num_classes =  get_num_classes()
     train_captions = dense_to_one_hot(train_captions, num_classes)
     test_captions = dense_to_one_hot(test_captions, num_classes)
 
@@ -218,9 +223,9 @@ def get_prepared_merged(data_dir = './datasets/processed', one_hot = False, vali
         len(train_features), validation_size))
 
 
-  validation_features = test_features[:validation_size]
+  validation_features = train_features[:validation_size]
   validation_captions = train_captions[:validation_size]
-  test_features = test_features[validation_size:]
+  train_features = train_features[validation_size:]
   train_captions = train_captions[validation_size:]
 
   # Create datasets
@@ -228,3 +233,14 @@ def get_prepared_merged(data_dir = './datasets/processed', one_hot = False, vali
   validation = DataSet(validation_features, validation_captions)
   test = DataSet(test_features, test_captions)
   return train,test,validation
+
+
+
+  # def get_images(urls,captions):
+
+  # for i,url in enumerate(urls):
+  #   img_id = url.split("/")[4]
+  #   img_id = img_id.split("_")[2]
+  #   img_id = img_id.split(".")[0]
+  #   fetch_url = 'http://mscoco.org/images/'+id
+  #   img_array = Image.open(urllib(fetch_url,img_id))

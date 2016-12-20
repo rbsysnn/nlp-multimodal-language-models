@@ -11,32 +11,37 @@ import theano
 import theano.tensor as T
 import lasagne
 from theano import function, config, shared, sandbox
-
+import tensorflow as tf
 from collections import Counter
 from lasagne.utils import floatX
 import lstm_utils
 import time
 import os
 import argparse
-from vocabulary import Vocabulary
+
 np.set_printoptions(threshold=1000)
 
+real_vocab = []
+with open('vocab.txt','r') as f:
+	for line in f.readlines():
+		real_vocab.append(line.strip())
 
-SEQUENCE_LENGTH_DEFAULT = 32
+VOCAB_SIZE = len(real_vocab) +1
+vocab = np.arange(len(real_vocab)+1)
+print(vocab)
 MAX_SENTENCE_LENGTH_DEFAULT = SEQUENCE_LENGTH_DEFAULT - 3 # 1 for image, 1 for start token, 1 for end token
 BATCH_SIZE_DEFAULT = 64
 CNN_FEATURE_SIZE = 4096
 EMBEDDING_SIZE_DEFAULT = 256
-EVAL_FREQ_DEFAULT = 100
+EVAL_FREQ_DEFAULT = 50
 PRINT_FREQ_DEFAULT = 10
-MAX_STEPS_DEFAULT = 1000
+MAX_STEPS_DEFAULT = 10000
 MAX_GRAD_NORM = 15
 DROPOUT_RATE_DEFAULT = 0.5
 TEST_SIZE_DEFAULT = 1000
 CAPTION_PRINT_DEFAULT = 10
 VALIDATION_SIZE_DEFAULT = 256
-VAL_FREQ_DEFAULT = 25
-DEFAULT_VOCAB_FILE = 'vocab.txt'
+VAL_FREQ_DEFAULT = 100
 
 LEARNING_RATE_DEFAULT = 1e-4
 
@@ -48,39 +53,55 @@ def calc_cross_ent(net_output, mask, targets):
 		return cost
 
 
+
+
+def prep_batch_for_network(dataset,batch_size):
+	features,captions = dataset.next_batch(batch_size)
+
+	x_cnn = floatX(np.zeros((len(features), 4096)))
+	x_sentence = np.zeros((len(captions), FLAGS.seq_length - 1), dtype='int32')
+	y_sentence = np.zeros((len(captions), FLAGS.seq_length), dtype='int32')
+	mask = np.zeros((len(captions), FLAGS.seq_length), dtype='bool')
+	for j in range(len(features)):
+		x_cnn[j] = features[j]
+		i = 0
+		for word in real_vocab.index('#START#') + (captions[j]) + real_vocab.index('#END#'):
+			mask[j,i] = True
+			y_sentence[j, i] = word
+			x_sentence[j, i] = word
+			i += 1
+
+	return x_cnn, x_sentence, y_sentence, mask
+
+
 def prepare_placeholders():
 	print('Setting placeholders')
 
-	x_cnn_sym = T.matrix()
+	cnn_placeholder  = tf.placeholder((None,CNN_FEATURE_SIZE),name='features')
 
-	# sentence encoded as sequence of integer word tokens
-	x_sentence_sym = T.imatrix()
+	x_placeholder    = tf.placeholder(dtype=tf.float32,shape = (None,FLAGS.seq_length),name='input_sentence')
+  	y_placeholder    = tf.placeholder(dtype=tf.int32,shape = (None,FLAGS.seq_length),name='target_sentence')
+  	mask_placeholder = tf.placeholder(dtype=tf.bool,shape=(None,FLAGS.seq_length),name='mask')
 
-	# mask defines which elements of the sequence should be predicted
-	mask_sym = T.imatrix()
 
-	# ground truth for the RNN output
-	y_sentence_sym = T.imatrix()  
-
-	return x_cnn_sym,x_sentence_sym,y_sentence_sym,mask_sym
+	return cnn_placeholder,x_placeholder,y_placeholder,mask_placeholder
 
 
 def inference():
 	print('Building model...')
 	print("Vocabulary size:%d"%(VOCAB_SIZE))
 	# Create model
-	# Create model
-	l_input_sentence = lasagne.layers.InputLayer((None, FLAGS.seq_length - 1))
+	l_input_sentence = lasagne.layers.InputLayer((FLAGS.batch_size, FLAGS.seq_length - 1))
 	#embedding layer
 	l_sentence_embedding = lasagne.layers.EmbeddingLayer(l_input_sentence, input_size=VOCAB_SIZE,output_size=FLAGS.embedding_size)
 	#feature input layer
-	l_input_cnn = lasagne.layers.InputLayer((None, CNN_FEATURE_SIZE))
+	l_input_cnn = lasagne.layers.InputLayer((FLAGS.batch_size, CNN_FEATURE_SIZE))
 	#fully connected embedding of features layer
 	l_cnn_embedding = lasagne.layers.DenseLayer(l_input_cnn, num_units=FLAGS.embedding_size, nonlinearity=lasagne.nonlinearities.identity)
 	#flatten
-	l_cnn_embedding = lasagne.layers.ReshapeLayer(l_cnn_embedding, ([0], 1, [1]))
+	l_cnn_flatten = lasagne.layers.ReshapeLayer(l_cnn_embedding, ([0], 1, [1]))
 	#concatenate word and feature embeddings
-	l_rnn_input = lasagne.layers.ConcatLayer([l_cnn_embedding, l_sentence_embedding])
+	l_rnn_input = lasagne.layers.ConcatLayer([l_cnn_flatten, l_sentence_embedding])
 	#dropout layer
 	l_dropout_input = lasagne.layers.DropoutLayer(l_rnn_input, p=FLAGS.dropout)
 	#lstm module
@@ -92,10 +113,7 @@ def inference():
 	#softmax layer
 	l_decoder = lasagne.layers.DenseLayer(l_shp, num_units=VOCAB_SIZE, nonlinearity=lasagne.nonlinearities.softmax)
 	#reshape to vocab_size
-	print(l_decoder.output_shape)
-	print(l_decoder.input_shape)
-	l_out = lasagne.layers.ReshapeLayer(l_decoder, (l_decoder.input_shape[1], FLAGS.seq_length, VOCAB_SIZE))
-
+	l_out = lasagne.layers.ReshapeLayer(l_decoder, (FLAGS.batch_size, FLAGS.seq_length, VOCAB_SIZE))
 	return l_input_sentence,l_input_cnn,l_out
 
 
@@ -108,7 +126,11 @@ def accuracy(logits,sentence_pl,sentences,feature_pl,features):
 							 sentence_pl: sentences
 							}
 				)
-
+	print(logits.shape)
+	print(sentences.shape)
+	print(features.shape)
+	print(sentence_pl.shape)
+	print(feature_pl.shape)
 	return prediction
 
 
@@ -195,13 +217,13 @@ def train():
 		if step % FLAGS.val_freq == 0:
 			duration = time.time() - start
 			try:
-				x_cnn, x_sentence, y_sentence, mask = prep_batch_for_network(val_data,val_data.features.shape[0])
+				x_cnn, x_sentence, y_sentence, mask = prep_batch_for_network(val_data,FLAGS.val_size)
 
 				loss_val,val_preds = f_val(x_cnn, x_sentence, mask, y_sentence)
 				print(val_preds.shape)
 				print(y_sentence.shape)
 
-				_print_random_k(val_preds,y_sentence,num_captions=FLAGS.caption_print)
+				_print_random_k(FLAGS.caption_print,val_preds,y_sentence)
 
 				out =  \
 					'==================================================================================\n'+\
@@ -218,17 +240,16 @@ def train():
 	f.close()
 
 
+def _print_random_k(num_captions,predictions,targets):
 
+	indices = np.argmax(predictions,axis=2)
 
-def _print_random_k(predictions,targets,num_captions=10):
-
-	pred_indices = np.argmax(predictions,axis=2)
-	for i in range(num_captions):
-		pred = _map_to_sentence(pred_indices[i])
-		target = _map_to_sentence(targets[i])
-		print('Real caption %s'%(target))
+	preds = vocab[indices[num_captions]]
+	targets = vocab[targets[num_captions]]
+	for t in range(len(targets)):
+		print('Real caption %s'(' '.join(targets[t])))
 		print('========================================')
-		print('Generated caption %s'%(pred))
+		print('Generated caption %s'(' '.join(preds[t])))
 
 
 
@@ -265,13 +286,14 @@ def _test_model(dataset,size=1000):
 		feature_chunk = faetures[chunk]
 		caption_chunk = captions[chunk]
 		
-	
+		print(caption_chunk)
+			
+		start = real_vocab.index("#START#")
+		print(str(start)+' index')
+		end = real_vocab.index("#END#")
+		print(str(end)+' index')
 		for j in range(len(features_chunk)):
-			x_cnn[j] = feature_chunk[j]
-			i = 0
-			caption_list = caption_chunk[j].tolist()
-			caption_list = [vocabulary.word_to_id("#START#")] + caption_list + [vocabulary.word_to_id("#END#")] 
-			for index,word in enumerate(caption_list):
+			for word in [real_vocab.index('#START#')] + captions[j] + [real_vocab.index('#END#')]:				
 				mask[j,i] = True
 				y_sentence[j, i] = word
 				x_sentence[j, i] = word
@@ -287,7 +309,6 @@ def _test_model(dataset,size=1000):
 
 
 def prep_batch_for_network(dataset,batch_size):
-	
 	features,captions = dataset.next_batch(batch_size)
 
 	x_cnn = floatX(np.zeros((len(features), 4096)))
@@ -297,11 +318,7 @@ def prep_batch_for_network(dataset,batch_size):
 	for j in range(len(features)):
 		x_cnn[j] = features[j]
 		i = 0
-	
-		caption_list = captions[j].tolist()
-		caption_list = [vocabulary.word_to_id("#START#")] + caption_list + [vocabulary.word_to_id("#END#")] 
-		mapped = _map_to_sentence(caption_list)
-		for index,word in enumerate(caption_list):
+		for word in real_vocab.index('#START#') + (captions[j]) + real_vocab.index('#END#'):
 			mask[j,i] = True
 			y_sentence[j, i] = word
 			x_sentence[j, i] = word
@@ -310,13 +327,6 @@ def prep_batch_for_network(dataset,batch_size):
 	return x_cnn, x_sentence, y_sentence, mask
 
 
-def _map_to_sentence(caption):
-	word_list = []
-	for word_id in caption:
-		# print('%s '%(vocabulary.id_to_word(word)),end='')
-		word_list.append(vocabulary.id_to_word(word_id))
-	# print('\n')
-	return word_list
 
 def main(_):
 	print_flags()
@@ -352,10 +362,5 @@ if __name__ == '__main__':
 						help='validation size')
 	parser.add_argument('--val_freq',type=int,default=VAL_FREQ_DEFAULT,
 						help='Frequency of evaluation on validation set')
-	parser.add_argument('--vocab_file',type=str,default=DEFAULT_VOCAB_FILE,
-						help='Default vocabulary file')
 	FLAGS, unparsed = parser.parse_known_args()
-
-	vocabulary  = Vocabulary(FLAGS.vocab_file,None,None,flag='load')
-	VOCAB_SIZE = len(vocabulary._vocab) + 1
 	main(None)

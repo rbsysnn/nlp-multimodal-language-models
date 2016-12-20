@@ -15,7 +15,7 @@ from vocabulary import Vocabulary
 
 FEATURES_DEF = False
 VERBOSE_DEF  = True
-VOCAB_FILE 	 = 'vocab.txt'
+VOCAB_FILE   = 'vocab.txt'
 TEST_SIZE    = 20000
 TRAIN_SIZE   = 60000
 MIN_WORD_DEFAULT = 4
@@ -40,8 +40,8 @@ def _process_metadata(captions_file):
     image_id = image[0]
     caption_list = image[1]
     for caption in caption_list:
-    	for i, word in enumerate(caption):
-    		caption[i] = word
+      for i, word in enumerate(caption):
+        caption[i] = word
     image_metadata.append(ImageMetadata(index, image_id, caption_list))
     num_captions += len(caption_list)
 
@@ -62,8 +62,8 @@ def _create_vocab(captions):
   """
   counter = Counter()
   for caption in captions:
-  	for word in caption:
-    		counter.update([word])
+    for word in caption:
+        counter.update([word])
   print("Total words:", len(counter))
 
   # Filter uncommon words and sort by descending count.
@@ -71,16 +71,18 @@ def _create_vocab(captions):
   word_counts.sort(key=lambda x: x[1], reverse=True)
   print("Words in vocabulary:", len(word_counts))
 
-  # Write out the word counts file.
-  with open(FLAGS.vocab_file, "w") as f:
-    f.write("\n".join(["%s %d" % (word, count) for word, count in word_counts]))
-  print("Wrote vocabulary file:", FLAGS.vocab_file)
+  
 
   # Create the vocabulary dictionary.
   reverse_vocab = [item[0] for item in word_counts]
   unk_id = len(reverse_vocab)
   vocab_dict = dict([(x, y) for (y, x) in enumerate(reverse_vocab)])
-  vocab = Vocabulary(vocab_dict, unk_id)
+  print(len(vocab_dict.keys()))
+  # vocab_dict["#START#"] = len(vocab_dict.keys()) + 1
+  # vocab_dict["#END#"] = len(vocab_dict.keys()) + 2
+  reverse_vocab.append("#START#")
+  reverse_vocab.append("#END#")
+  vocab = Vocabulary(FLAGS.vocab_file,reverse_vocab, unk_id)
 
   return vocab
 
@@ -114,12 +116,11 @@ def _process_dataset(name, images, vocab, feature_file):
                 encoded_caption.append(vocab.word_to_id(word))
             # Append encoded captions to
             encoded_caption = np.array(encoded_caption)
-            input_vec = np.array([features[image.index], encoded_caption])
+            input_vec = np.array([features[image.index], encoded_caption,image.img_url])
           
-            print("Appending to dataset image %d\t with url %d" % (image.index,image.img_url))
+            print("Appending to dataset image %d with url %s and caption %s" % (image.index,image.img_url,str(caption)))
 
             dataset.append(input_vec)
-            urls.append(image.img_url)
 
     dataset = np.array(dataset)
     urls = np.array(urls)
@@ -143,30 +144,30 @@ def _process_dataset(name, images, vocab, feature_file):
     np.save(file_to_save+'url',urls)
 
 def initialize():
-	'''
-	Initialize the data.
-	'''
-	features = bool(FLAGS.features)
+  '''
+  Initialize the data.
+  '''
+  features = bool(FLAGS.features)
 
-	print("----------------------------- Parsing targets -----------------------------")
-	train_dataset = _process_metadata(paths.TRAIN_CAPTIONS_DEF)
-	val_dataset   = _process_metadata(paths.VALIDATION_CAPTIONS_DEF)
+  print("----------------------------- Parsing targets -----------------------------")
+  train_dataset = _process_metadata(paths.TRAIN_CAPTIONS_DEF)
+  val_dataset   = _process_metadata(paths.VALIDATION_CAPTIONS_DEF)
 
-	if FLAGS.verbose:
-		print("Training Dataset  length: %d"%(len(train_dataset)))
-		print("Test     Dataset  length: %d"%(len(val_dataset )))
+  if FLAGS.verbose:
+    print("Training Dataset  length: %d"%(len(train_dataset)))
+    print("Test     Dataset  length: %d"%(len(val_dataset )))
 
 
-	print("--------------------------- Creating vocabulary ---------------------------")
-	train_captions = [caption for image in train_dataset for caption in image.captions]
-	vocab = _create_vocab(train_captions)
+  print("--------------------------- Creating vocabulary ---------------------------")
+  train_captions = [caption for image in train_dataset for caption in image.captions]
+  vocab = _create_vocab(train_captions)
 
-	if FLAGS.verbose:
-		print("Vocabulary length:%d "%(len(vocab._vocab)))
+  if FLAGS.verbose:
+    print("Vocabulary length:%d "%(len(vocab._vocab)))
 
-	print("---------------------------- Parsing  features ----------------------------")
-	_process_dataset('training',train_dataset, vocab, paths.TRAIN_FEATURES_DEF)
-	_process_dataset('test',val_dataset, vocab, paths.VALIDATION_FEATURES_DEF)
+  print("---------------------------- Parsing  features ----------------------------")
+  _process_dataset('training',train_dataset, vocab, paths.TRAIN_FEATURES_DEF)
+  _process_dataset('test',val_dataset, vocab, paths.VALIDATION_FEATURES_DEF)
 
 
 
@@ -178,9 +179,9 @@ def print_flags():
     print(key + ' \t:\t ' + str(value))
 
 def main(_):
-	print("Welcome to our show and tell version")
-	print_flags()
-	initialize()
+  print("Welcome to our show and tell version")
+  print_flags()
+  initialize()
 
 
 if __name__ == '__main__':
@@ -190,6 +191,6 @@ if __name__ == '__main__':
   parser.add_argument('--verbose'    ,type=str,default=VERBOSE_DEF,help='Show further output (true/false)')
   parser.add_argument("--vocab_file" ,type=str,default=VOCAB_FILE,help="Output vocabulary file of word counts.")
   parser.add_argument("--min_words"  ,type=str,default=MIN_WORD_DEFAULT,help="The minimum number of occurrences of each word "+
-  	"in the training set for inclusion in the vocabulary.")
+    "in the training set for inclusion in the vocabulary.")
   FLAGS, unparsed = parser.parse_known_args()
   main(None)

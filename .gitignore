@@ -2,3 +2,4 @@ merged_val*
 merged_train*
 **.ipynb_checkpoints
 *.pyc
+datasets/*
