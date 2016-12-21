@@ -27,14 +27,14 @@ BATCH_SIZE_DEFAULT = 32
 CNN_FEATURE_SIZE = 4096
 EMBEDDING_SIZE_DEFAULT = 256
 EVAL_FREQ_DEFAULT = 100
-PRINT_FREQ_DEFAULT = 10
+PRINT_FREQ_DEFAULT = 50
 MAX_STEPS_DEFAULT = 10000
 MAX_GRAD_NORM = 15
 DROPOUT_RATE_DEFAULT = 0.5
 TEST_SIZE_DEFAULT = 1000
 CAPTION_PRINT_DEFAULT = 10
 VALIDATION_SIZE_DEFAULT = 256
-VAL_FREQ_DEFAULT = 25
+VAL_FREQ_DEFAULT = 100
 DEFAULT_VOCAB_FILE = 'vocab.txt'
 ONE_HOT_DEFAULT = False
 LEARNING_RATE_DEFAULT = 1e-3
@@ -270,7 +270,7 @@ def _test_model(dataset,size=1000):
 			x_cnn[j] = feature_chunk[j]
 			i = 0
 			caption_list = caption_chunk[j].tolist()
-			caption_list = [vocabulary.word_to_id("#START#")] + caption_list + [vocabulary.word_to_id("#END#")] 
+			# caption_list = [vocabulary.word_to_id("#START#")] + caption_list + [vocabulary.word_to_id("#END#")] 
 			for index,word in enumerate(caption_list):
 				mask[j,i] = True
 				y_sentence[j, i] = word
@@ -288,7 +288,7 @@ def _test_model(dataset,size=1000):
 
 def prep_batch_for_network(dataset,batch_size):
 	
-	features,captions = dataset.next_batch(batch_size)
+	features,captions,urls = dataset.next_batch(batch_size)
 	if FLAGS.one_hot:
 		print('apply one-hot encoding')
 		num_classes =  len(vocabulary._vocab)
@@ -318,7 +318,7 @@ def prep_batch_for_network(dataset,batch_size):
 			end_tk 				= end_tk.tolist()
 
 
-		caption_list = start_tk + caption_list + end_tk
+		# caption_list = start_tk + caption_list + end_tk
 		mapped 		 = _map_to_sentence(caption_list)
 		# print(caption_list)
 		# print(mapped)

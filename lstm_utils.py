@@ -135,12 +135,12 @@ def read_data_sets(data_dir, validation_size,max_length):
 		url 	= dataset[j][2]
 		features.append(feature)
 		captions.append(caption)
-		urls.append(urlset[j,:])
+		urls.append(url)
 		j +=1 
 
 	train_features = np.array(features)
 	train_captions = np.array(captions)
-	
+	train_urls 	   = np.array(urls)
 	dataset = np.load(data_dir + "merged_val.npy")
 	features = []
 	captions = []
@@ -154,7 +154,7 @@ def read_data_sets(data_dir, validation_size,max_length):
 		caption = dataset[j][1]
 		features.append(feature)
 		captions.append(caption)
-		urls.append(urlset[j,:])
+		urls.append(url)
 		j +=1
 
 	test_features = np.array(features)
