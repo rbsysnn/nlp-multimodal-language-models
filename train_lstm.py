@@ -303,12 +303,13 @@ def prep_batch_for_network(dataset,batch_size):
 		i = 0
 		
 		caption_list = captions[j].tolist()
+
 		# print(np.array(caption_list).shape)
 		# print(max(caption_list[0]))
 		# print(caption_list[0].index(max(caption_list[0])))
 		if not FLAGS.one_hot:
-			start_tk 	= [start]
-			end_tk 		= [end]
+			start_tk 	= [start_v]
+			end_tk 		= [end_v]
 		else:
 			start_tk 			= np.zeros((1,num_classes),dtype='int32')
 			start_tk[0,start] 	= 1
@@ -319,8 +320,8 @@ def prep_batch_for_network(dataset,batch_size):
 
 
 		# caption_list = start_tk + caption_list + end_tk
-		mapped 		 = _map_to_sentence(caption_list)
-		# print(caption_list)
+
+		mapped  = _map_to_sentence(caption_list)
 		# print(mapped)
 		for index,word in enumerate(caption_list):
 			mask[j,i] 			= True
@@ -384,8 +385,8 @@ if __name__ == '__main__':
 	FLAGS, unparsed = parser.parse_known_args()
 
 	vocabulary  = Vocabulary(FLAGS.vocab_file,None,None,flag='load')
-	VOCAB_SIZE = len(vocabulary._vocab) + 1
-	start = vocabulary.word_to_id("#START#")
-	end = vocabulary.word_to_id("#END#")
-
+	VOCAB_SIZE = len(vocabulary._vocab) 
+	start_v = vocabulary.word_to_id("#START#")
+	end_v = vocabulary.word_to_id("#END#") 
+	print(vocabulary.word_to_id('dressing'))
 	main(None)
