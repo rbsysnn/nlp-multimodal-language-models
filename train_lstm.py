@@ -19,17 +19,16 @@ import time
 import os
 import argparse
 from vocabulary import Vocabulary
-np.set_printoptions(threshold=1000)
 
 
 SEQUENCE_LENGTH_DEFAULT = 32
 MAX_SENTENCE_LENGTH_DEFAULT = SEQUENCE_LENGTH_DEFAULT - 3 # 1 for image, 1 for start token, 1 for end token
-BATCH_SIZE_DEFAULT = 64
+BATCH_SIZE_DEFAULT = 32
 CNN_FEATURE_SIZE = 4096
 EMBEDDING_SIZE_DEFAULT = 256
 EVAL_FREQ_DEFAULT = 100
 PRINT_FREQ_DEFAULT = 10
-MAX_STEPS_DEFAULT = 1000
+MAX_STEPS_DEFAULT = 10000
 MAX_GRAD_NORM = 15
 DROPOUT_RATE_DEFAULT = 0.5
 TEST_SIZE_DEFAULT = 1000
@@ -37,8 +36,8 @@ CAPTION_PRINT_DEFAULT = 10
 VALIDATION_SIZE_DEFAULT = 256
 VAL_FREQ_DEFAULT = 25
 DEFAULT_VOCAB_FILE = 'vocab.txt'
-
-LEARNING_RATE_DEFAULT = 1e-4
+ONE_HOT_DEFAULT = False
+LEARNING_RATE_DEFAULT = 1e-3
 
 def calc_cross_ent(net_output, mask, targets):
 		# Helper function to calculate the cross entropy error
@@ -129,11 +128,11 @@ def train():
 	print(file)
 	if os.path.exists(file):
 		print('Loading preprocessed features/captions')
-		train_data,test_data,val_data = lstm_utils.get_prepared_merged(one_hot=False,max_length=FLAGS.max_sentence,
+		train_data,test_data,val_data = lstm_utils.get_prepared_merged(max_length=FLAGS.max_sentence,
 			validation_size=FLAGS.val_size)
 	else:
 		print('Loading features/captions')
-		train_data,test_data,val_data = lstm_utils.get_merged(one_hot=False,max_length = FLAGS.max_sentence,
+		train_data,test_data,val_data = lstm_utils.get_merged(max_length = FLAGS.max_sentence,
 			validation_size=FLAGS.val_size)
 
 
@@ -159,6 +158,8 @@ def train():
 	print('Building network optimizer...')
 
 	updates = lasagne.updates.adam(all_grads, all_params, learning_rate=FLAGS.learning_rate)
+	print('Testing next batch method.')
+	x_cnn, x_sentence, y_sentence, mask = prep_batch_for_network(train_data,FLAGS.batch_size)
 
 	print('Building training/test operations...')
 
@@ -220,15 +221,17 @@ def train():
 
 
 
-def _print_random_k(predictions,targets,num_captions=10):
-
+def _print_random_k(predictions,targets,num_captions=15):
 	pred_indices = np.argmax(predictions,axis=2)
 	for i in range(num_captions):
 		pred = _map_to_sentence(pred_indices[i])
 		target = _map_to_sentence(targets[i])
-		print('Real caption %s'%(target))
-		print('========================================')
-		print('Generated caption %s'%(pred))
+		print('========================================%d/%d image==========================================================='%(i+1,num_captions))
+		print('Real caption:\t %s'%(' '.join(target)))
+		print('Generated caption:\t %s'%(' '.join(pred)))
+		print('===============================================================================================================')
+		print('')
+		
 
 
 
@@ -252,10 +255,7 @@ def _test_model(dataset,size=1000):
 	test_batches = test_size/size
 
 	chunks = np.array_split(range(test_size),test_batches)
-	print(chunks.shape)
-	print(chunks[0])
-	print(features.shape)
-	print(captions.shape)
+
 	for i,chunk in enumerate(chunks):
 		
 		x_sentence = np.zeros((len(captions), FLAGS.seq_length - 1), dtype='int32')
@@ -289,6 +289,10 @@ def _test_model(dataset,size=1000):
 def prep_batch_for_network(dataset,batch_size):
 	
 	features,captions = dataset.next_batch(batch_size)
+	if FLAGS.one_hot:
+		print('apply one-hot encoding')
+		num_classes =  len(vocabulary._vocab)
+		captions = lstm_utils.dense_to_one_hot(captions, num_classes)
 
 	x_cnn = floatX(np.zeros((len(features), 4096)))
 	x_sentence = np.zeros((len(captions), FLAGS.seq_length - 1), dtype='int32')
@@ -297,14 +301,31 @@ def prep_batch_for_network(dataset,batch_size):
 	for j in range(len(features)):
 		x_cnn[j] = features[j]
 		i = 0
-	
+		
 		caption_list = captions[j].tolist()
-		caption_list = [vocabulary.word_to_id("#START#")] + caption_list + [vocabulary.word_to_id("#END#")] 
-		mapped = _map_to_sentence(caption_list)
+		# print(np.array(caption_list).shape)
+		# print(max(caption_list[0]))
+		# print(caption_list[0].index(max(caption_list[0])))
+		if not FLAGS.one_hot:
+			start_tk 	= [start]
+			end_tk 		= [end]
+		else:
+			start_tk 			= np.zeros((1,num_classes),dtype='int32')
+			start_tk[0,start] 	= 1
+			end_tk 				= np.zeros((1,num_classes),dtype='int32')
+			end_tk[0,end] 		= 1
+			start_tk 			= start_tk.tolist()
+			end_tk 				= end_tk.tolist()
+
+
+		caption_list = start_tk + caption_list + end_tk
+		mapped 		 = _map_to_sentence(caption_list)
+		# print(caption_list)
+		# print(mapped)
 		for index,word in enumerate(caption_list):
-			mask[j,i] = True
-			y_sentence[j, i] = word
-			x_sentence[j, i] = word
+			mask[j,i] 			= True
+			y_sentence[j, i] 	= word
+			x_sentence[j, i] 	= word
 			i += 1
 
 	return x_cnn, x_sentence, y_sentence, mask
@@ -313,8 +334,12 @@ def prep_batch_for_network(dataset,batch_size):
 def _map_to_sentence(caption):
 	word_list = []
 	for word_id in caption:
-		# print('%s '%(vocabulary.id_to_word(word)),end='')
-		word_list.append(vocabulary.id_to_word(word_id))
+		if FLAGS.one_hot:
+			indices = np.where(np.array(word_id)==1)
+			for i,ind in enumerate(indices):
+				word_list.append(vocabulary.id_to_word(ind))
+		else:
+			word_list.append(vocabulary.id_to_word(word_id))
 	# print('\n')
 	return word_list
 
@@ -354,8 +379,13 @@ if __name__ == '__main__':
 						help='Frequency of evaluation on validation set')
 	parser.add_argument('--vocab_file',type=str,default=DEFAULT_VOCAB_FILE,
 						help='Default vocabulary file')
+	parser.add_argument('--one_hot',type=str,default=ONE_HOT_DEFAULT,
+						help='apply one hot encoding')
 	FLAGS, unparsed = parser.parse_known_args()
 
 	vocabulary  = Vocabulary(FLAGS.vocab_file,None,None,flag='load')
 	VOCAB_SIZE = len(vocabulary._vocab) + 1
+	start = vocabulary.word_to_id("#START#")
+	end = vocabulary.word_to_id("#END#")
+
 	main(None)

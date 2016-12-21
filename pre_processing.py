@@ -20,33 +20,33 @@ TEST_SIZE    = 20000
 TRAIN_SIZE   = 60000
 MIN_WORD_DEFAULT = 4
 ImageMetadata = namedtuple("ImageMetadata",
-                           ["index","img_url", "captions"])
+						   ["index","img_url", "captions"])
 
 def _process_metadata(captions_file):
   """Loads image metadata from a JSON file and processes the captions.
   Args:
-    captions_file: JSON file containing caption annotations.
+	captions_file: JSON file containing caption annotations.
   Returns:
-    A list of ImageMetadata.
+	A list of ImageMetadata.
   """
   with open(captions_file, "r") as f:
-    caption_data = json.load(f)
+	caption_data = json.load(f)
 
   # Extract the captions. Each image_id is associated with 5 captions.
   image_metadata = []
   num_captions = 0
 
   for index, image in enumerate(caption_data):
-    image_id = image[0]
-    caption_list = image[1]
-    for caption in caption_list:
-      for i, word in enumerate(caption):
-        caption[i] = word
-    image_metadata.append(ImageMetadata(index, image_id, caption_list))
-    num_captions += len(caption_list)
+	image_id = image[0]
+	caption_list = image[1]
+	for caption in caption_list:
+	  for i, word in enumerate(caption):
+		caption[i] = word
+	image_metadata.append(ImageMetadata(index, image_id, caption_list))
+	num_captions += len(caption_list)
 
   print("Finished processing %d captions for %d images in %s" %
-        (num_captions, len(image_metadata), captions_file.split('/')[-1]))
+		(num_captions, len(image_metadata), captions_file.split('/')[-1]))
 
   return image_metadata
 
@@ -56,14 +56,14 @@ def _create_vocab(captions):
   The vocabulary is saved to disk in a text file of word counts. The id of each
   word in the file is its corresponding 0-based line number.
   Args:
-    captions: A list of lists of strings.
+	captions: A list of lists of strings.
   Returns:
-    A Vocabulary object.
+	A Vocabulary object.
   """
   counter = Counter()
   for caption in captions:
-    for word in caption:
-        counter.update([word])
+	for word in caption:
+		counter.update([word.lower()])
   print("Total words:", len(counter))
 
   # Filter uncommon words and sort by descending count.
@@ -88,60 +88,62 @@ def _create_vocab(captions):
 
 
 def _process_dataset(name, images, vocab, feature_file):
-    """Processes a complete data set and saves it as a TFRecord.
-    Args:
-      name: Unique identifier specifying the dataset.
-      images: List of ImageMetadata.
-      vocab: A Vocabulary object.
-      num_shards: Integer number of shards for the output files.
-    """
+	"""Processes a complete data set and saves it as a TFRecord.
+	Args:
+	  name: Unique identifier specifying the dataset.
+	  images: List of ImageMetadata.
+	  vocab: A Vocabulary object.
+	  num_shards: Integer number of shards for the output files.
+	"""
 
-    # Break up each image into a separate entity for each caption.
-    images = [ImageMetadata(image.index, image.img_url, [caption])
-              for image in images for caption in image.captions]
+	# Break up each image into a separate entity for each caption.
+	images = [ImageMetadata(image.index, image.img_url, [caption])
+			  for image in images for caption in image.captions]
 
-    # Shuffle the ordering of images. Make the randomization repeatable.
-    np.random.seed(42)
-    np.random.shuffle(images)
-    features = np.load(feature_file)
+	# Shuffle the ordering of images. Make the randomization repeatable.
+	np.random.seed(42)
+	np.random.shuffle(images)
+	features = np.load(feature_file)
 
-    dataset = []
-    urls = []
-    # Create a mechanism for monitoring when all threads are finished.
-    for image in images:
-        for caption in image.captions:
-            encoded_caption = []
-            for i, word in enumerate(caption):
-                # Encode word to index
-                encoded_caption.append(vocab.word_to_id(word))
-            # Append encoded captions to
-            encoded_caption = np.array(encoded_caption)
-            input_vec = np.array([features[image.index], encoded_caption,image.img_url])
-          
-            print("Appending to dataset image %d with url %s and caption %s" % (image.index,image.img_url,str(caption)))
+	dataset = []
+	# Create a mechanism for monitoring when all threads are finished.
+	j = 0
+	k = 0
+	for image in images:
+		k+=1
+		for caption in image.captions:
+			encoded_caption = []
+			for i, word in enumerate(caption):
+				# Encode word to index
+				encoded_caption.append(vocab.word_to_id(word))
+			# Append encoded captions to
+			encoded_caption = np.array(encoded_caption)
+			input_vec = np.array([features[image.index], encoded_caption,image.img_url])
+			j +=1
+			if j%100==0:
+				print("%d/%d Appending to %s dataset image %d with url %s and caption %s" % (k+1,len(images),name,image.index,image.img_url,str(caption)))
+				j = 0
 
-            dataset.append(input_vec)
+			dataset.append(input_vec)
 
-    dataset = np.array(dataset)
-    urls = np.array(urls)
-    if name == 'training':
-      size = TRAIN_SIZE
-    else:
-      size = TEST_SIZE
-    indices = np.arange(dataset.shape[0])
-    np.random.shuffle(indices)
-    dataset = dataset[indices[0:size]]
-    urls = urls[indices[0:size]]
-    # Save processed data
+	dataset = np.array(dataset)
+	if name == 'training':
+	  size = TRAIN_SIZE
+	else:
+	  size = TEST_SIZE
+	indices = np.arange(dataset.shape[0])
+	np.random.shuffle(indices)
+	dataset = dataset[indices[0:size]]
+	# Save processed data
 
-    if not os.path.exists(paths.PROCESSED_FOLDER):
-        os.makedirs(paths.PROCESSED_FOLDER)
-    feature_file = str(feature_file).split('/')[-1]
-    file_to_save = paths.PROCESSED_FOLDER + feature_file
+	if not os.path.exists(paths.PROCESSED_FOLDER):
+		os.makedirs(paths.PROCESSED_FOLDER)
+	feature_file = str(feature_file).split('/')[-1]
+	file_to_save = paths.PROCESSED_FOLDER + feature_file
 
-    print("Final dataset size:%s,urls:%s" % (str(dataset.shape),str(urls.shape)), 'in ', file_to_save)
-    np.save(file_to_save, dataset)
-    np.save(file_to_save+'url',urls)
+	np.save(file_to_save, dataset)
+	print("Final dataset size:\t%s" % (str(dataset.shape)), 'in ', file_to_save)
+
 
 def initialize():
   '''
@@ -154,8 +156,8 @@ def initialize():
   val_dataset   = _process_metadata(paths.VALIDATION_CAPTIONS_DEF)
 
   if FLAGS.verbose:
-    print("Training Dataset  length: %d"%(len(train_dataset)))
-    print("Test     Dataset  length: %d"%(len(val_dataset )))
+	print("Training Dataset  length: %d"%(len(train_dataset)))
+	print("Test     Dataset  length: %d"%(len(val_dataset )))
 
 
   print("--------------------------- Creating vocabulary ---------------------------")
@@ -163,7 +165,7 @@ def initialize():
   vocab = _create_vocab(train_captions)
 
   if FLAGS.verbose:
-    print("Vocabulary length:%d "%(len(vocab._vocab)))
+	print("Vocabulary length:%d "%(len(vocab._vocab)))
 
   print("---------------------------- Parsing  features ----------------------------")
   _process_dataset('training',train_dataset, vocab, paths.TRAIN_FEATURES_DEF)
@@ -176,7 +178,7 @@ def print_flags():
   Prints all entries in FLAGS variable.
   """
   for key, value in vars(FLAGS).items():
-    print(key + ' \t:\t ' + str(value))
+	print(key + ' \t:\t ' + str(value))
 
 def main(_):
   print("Welcome to our show and tell version")
@@ -191,6 +193,6 @@ if __name__ == '__main__':
   parser.add_argument('--verbose'    ,type=str,default=VERBOSE_DEF,help='Show further output (true/false)')
   parser.add_argument("--vocab_file" ,type=str,default=VOCAB_FILE,help="Output vocabulary file of word counts.")
   parser.add_argument("--min_words"  ,type=str,default=MIN_WORD_DEFAULT,help="The minimum number of occurrences of each word "+
-    "in the training set for inclusion in the vocabulary.")
+	"in the training set for inclusion in the vocabulary.")
   FLAGS, unparsed = parser.parse_known_args()
   main(None)

@@ -1,8 +1,11 @@
 VALIDATION_FEATURES_DEF 	= './datasets/raw/merged_val.npy'
+VALIDATION_URL_DEF			= './datasets/raw/merged_val_urls.npy'
 VALIDATION_CAPTIONS_DEF 	= './datasets/raw/merged_val.json'
 TRAIN_FEATURES_DEF      	= './datasets/raw/merged_train.npy'
 TRAIN_CAPTIONS_DEF      	= './datasets/raw/merged_train.json'
+TRAIN_URL_DEF				= './datasets/raw/merged_train_urls.npy'
 PROCESSED_FOLDER        	= './datasets/processed/'
 RAW_FOLDER					= './datasets/raw/'
 PROCESSED_TRAIN_DATA  		= './datasets/processed/merged_train.npy'
 PROCESSED_VALIDATION_DATA	= './datasets/processed/merged_val.npy'
+
