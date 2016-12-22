@@ -173,7 +173,7 @@ def train():
 		 all_grads, MAX_GRAD_NORM, return_norm=True)
 	print('Building network optimizer...')
 
-	updates = lasagne.updates.sgd(all_grads, all_params, learning_rate=FLAGS.learning_rate)
+	updates = lasagne.updates.adam(all_grads, all_params, learning_rate=FLAGS.learning_rate)
 	print('Testing next batch method.')
 	x_cnn, x_sentence, y_sentence, mask = prep_batch_for_network(train_data,FLAGS.batch_size)
 	
@@ -218,8 +218,7 @@ def train():
 			line = '%s,%s,%s\n'%(str(step),str(train_loss),str(norm))
 			train_file.write(line)
 			train_file.flush()
-
-		start = time.time()
+			start = time.time()
 
 		if step %FLAGS.check_freq == 0 and step != max_steps:
 			
@@ -232,7 +231,7 @@ def train():
 				'Saving checkpoint at step %d\t in filename %s\n'%(step,file)+\
 				'==================================================================================\n'
 			print(out)
-			test_loss,test_bleu1,test_bleu4 = test_model(test_data,step,f,f_val)
+			test_loss,test_bleu1,test_bleu4 = test_model(test_data,step,f,f_val,size=FLAGS.batch_size)
 			duration = time.time() - start
 			out =  \
 				'==================================================================================================\n'+\
@@ -247,7 +246,7 @@ def train():
 
 		if step % FLAGS.val_freq == 0:
 
-			val_loss,val_bleu1,val_bleu4 = validate_model(val_data,f_val)
+			val_loss,val_bleu1,val_bleu4 = validate_model(val_data,f_val,size=FLAGS.batch_size)
 
 			duration = time.time() - start
 
@@ -263,7 +262,7 @@ def train():
 
 	file = session_name+'final_checkpoint.csv'
 	f = open(file,'w+')
-	test_loss,test_bleu1,test_bleu4 = test_model(test_data,step,f,f_val)
+	test_loss,test_bleu1,test_bleu4 = test_model(test_data,step,f,f_val,size=FLAGS.batch_size)
 
 	total_duration = time.time() - start_initial
 	out =  \
