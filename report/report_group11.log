@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.16 (MiKTeX 2.9) (preloaded format=pdflatex 2016.3.29)  22 DEC 2016 13:36
+This is pdfTeX, Version 3.14159265-2.6-1.40.16 (MiKTeX 2.9) (preloaded format=pdflatex 2016.3.29)  22 DEC 2016 13:43
 entering extended mode
 **./report_group11.tex
 (report_group11.tex
@@ -793,26 +793,27 @@ File: ./images/sample_input.png Graphic file (type png)
 Package pdftex.def Info: ./images/sample_input.png used on input line 116.
 (pdftex.def)             Requested size: 143.09483pt x 104.1241pt.
 
-<./images/accuracy.png, id=88, 918.43124pt x 386.44376pt>
-File: ./images/accuracy.png Graphic file (type png)
+<./images/phony-bleu.png, id=88, 313.17pt x 230.36063pt>
+File: ./images/phony-bleu.png Graphic file (type png)
 
-<use ./images/accuracy.png>
-Package pdftex.def Info: ./images/accuracy.png used on input line 152.
-(pdftex.def)             Requested size: 298.11374pt x 125.43352pt.
+<use ./images/phony-bleu.png>
+Package pdftex.def Info: ./images/phony-bleu.png used on input line 152.
+(pdftex.def)             Requested size: 119.2467pt x 87.71368pt.
  [3 <./images/sample_input.png>]
+<./images/accuracy.png, id=97, 918.43124pt x 386.44376pt>
 File: ./images/accuracy.png Graphic file (type png)
 
 <use ./images/accuracy.png>
 Package pdftex.def Info: ./images/accuracy.png used on input line 166.
 (pdftex.def)             Requested size: 298.11374pt x 125.43352pt.
- <./images/loss.png, id=97, 931.48pt x 381.425pt>
+ <./images/loss.png, id=98, 931.48pt x 381.425pt>
 File: ./images/loss.png Graphic file (type png)
 
 <use ./images/loss.png>
 Package pdftex.def Info: ./images/loss.png used on input line 171.
 (pdftex.def)             Requested size: 298.11374pt x 122.07013pt.
- [4 <./images/accuracy.png> <./images/loss.png>]
-(report_group11.bbl)
+ (report_group11.bbl [4 <./images/phony-bleu.png> <./images/accuracy.png> <./im
+ages/loss.png>])
 Package atveryend Info: Empty hook `BeforeClearDocument' on input line 198.
  [5]
 Package atveryend Info: Empty hook `AfterLastShipout' on input line 198.
@@ -824,10 +825,10 @@ Package rerunfilecheck Info: File `report_group11.out' has not changed.
 Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 198.
  ) 
 Here is how much of TeX's memory you used:
- 10486 strings out of 493634
- 163021 string characters out of 3134015
+ 10491 strings out of 493634
+ 163146 string characters out of 3134015
  280803 words of memory out of 3000000
- 13631 multiletter control sequences out of 15000+200000
+ 13635 multiletter control sequences out of 15000+200000
  30156 words of font info for 92 fonts, out of 3000000 for 9000
  1025 hyphenation exceptions out of 8191
  42i,8n,40p,531b,440s stack positions out of 5000i,500n,10000p,200000b,50000s
@@ -838,9 +839,9 @@ c\dpi600\ectt1000.pk><C:/Users/Dimitris/AppData/Local/Programs/MiKTeX 2.9/fonts
 MiKTeX 2.9/fonts/type1/urw/times/utmb8a.pfb><C:/Users/Dimitris/AppData/Local/Pr
 ograms/MiKTeX 2.9/fonts/type1/urw/times/utmr8a.pfb><C:/Users/Dimitris/AppData/L
 ocal/Programs/MiKTeX 2.9/fonts/type1/urw/times/utmri8a.pfb>
-Output written on report_group11.pdf (5 pages, 485955 bytes).
+Output written on report_group11.pdf (5 pages, 541321 bytes).
 PDF statistics:
- 159 PDF objects out of 1000 (max. 8388607)
+ 161 PDF objects out of 1000 (max. 8388607)
  30 named destinations out of 1000 (max. 500000)
- 18581 words of extra memory for PDF output out of 20736 (max. 10000000)
+ 18586 words of extra memory for PDF output out of 20736 (max. 10000000)
 
