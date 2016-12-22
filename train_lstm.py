@@ -26,7 +26,7 @@ SEQUENCE_LENGTH_DEFAULT = 32
 MAX_SENTENCE_LENGTH_DEFAULT = SEQUENCE_LENGTH_DEFAULT - 3 # 1 for image, 1 for start token, 1 for end token
 BATCH_SIZE_DEFAULT = 32
 CNN_FEATURE_SIZE = 4096
-EMBEDDING_SIZE_DEFAULT = 256
+EMBEDDING_SIZE_DEFAULT = 512
 EVAL_FREQ_DEFAULT = 5000
 PRINT_FREQ_DEFAULT = 50
 MAX_STEPS_DEFAULT = 10000
@@ -148,9 +148,9 @@ def train():
 	train_file = open(train_monitor,'w+')
 	train_file.write('Step,Loss,Gradient Norm\n')
 	val_file   = open(validation_monitor,'w+')
-	val_file.write('Step,Loss,Bleu-1,Bleu-4')
+	val_file.write('Step,Loss,Bleu-1,Bleu-4\n')
 	test_file  = open(test_monitor,'w+')
-	test_file.write('Step,Loss,Bleu-1,Bleu-4')
+	test_file.write('Step,Loss,Bleu-1,Bleu-4\np')
 	meta_info  = open(meta,'w+')
 	write_flags_to_file(meta_info)
 
