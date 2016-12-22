@@ -8,7 +8,7 @@ import matplotlib.image as mpimg
 #list of lists - num_of_im the total number of images
 
 
-def show_images(url,generated_captions,real_captions,num_of_im=4):
+def show_images(url,generated_captions,real_captions,bleu_score,num_of_im=4):
     
     
     #for 4 images
@@ -22,19 +22,22 @@ def show_images(url,generated_captions,real_captions,num_of_im=4):
     #check for all urls
     for url_id in range(len(url)):
         #while images <4
+
         if num_of_images<num_of_im:
             
             #print ''.join(url[j])
             #check if image is in mscoco
             if "mscoco" in ''.join(url[url_id]):
-                
+                    
                 #img_id
                 img_id= ''.join(url[url_id]).rpartition('/')[2]
                 url[url_id]=["http://mscoco.org/images/"+img_id]
                 urllib.urlretrieve(''.join(url[url_id]), img_id)
-                #img = Image.open(img_id)
-                img=mpimg.imread(img_id)
-             
+                try:
+                    img=mpimg.imread(img_id)
+                except IOError :
+                    # print("Not a valid image")
+                    continue
                 ax[num_of_images].imshow(img)
                 ax[num_of_images].set_xticks([])
                 ax[num_of_images].set_yticks([])
@@ -44,8 +47,9 @@ def show_images(url,generated_captions,real_captions,num_of_im=4):
                 "\n"+"Real caption : "+''.join(real_captions[url_id]))
                 
                 
-                os.remove(img_id)
+                # os.remove(img_id)
                 num_of_images+=1
+
         #else break        
         else:
             break
@@ -58,13 +62,14 @@ def show_images(url,generated_captions,real_captions,num_of_im=4):
 
 
 #url something like this 
-#url=[["datasets/mscoco/images/afadga/afagagda/agaga/agagda/0000000171678"],["asfafa"],["mscoco/107959"]]
+url=[["datasets/mscoco/images/afadga/afagagda/agaga/agagda/0000000171678"],["/mscoco/asfafa"],["mscoco/107959"]]
 
-#captions like this
-#generated_captions=[["1"],["2"],["3"],["4"]]
-#real_captions=[["1"],["3"],["2"],["3"],["4"]]
+# captions like this
+generated_captions=[["1"],["2"],["3"],["4"]]
+real_captions=[["1"],["3"],["2"],["3"],["4"]]
+bleu_score = [
 
-#show_images(url,generated_captions,real_captions)
+show_images(url,generated_captions,real_captions)
 
 
 

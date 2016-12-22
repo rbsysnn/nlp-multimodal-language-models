@@ -19,14 +19,15 @@ import time
 import os
 import argparse
 from vocabulary import Vocabulary
-
-
+import uuid
+import datetime
+import bleuscore
 SEQUENCE_LENGTH_DEFAULT = 32
 MAX_SENTENCE_LENGTH_DEFAULT = SEQUENCE_LENGTH_DEFAULT - 3 # 1 for image, 1 for start token, 1 for end token
 BATCH_SIZE_DEFAULT = 32
 CNN_FEATURE_SIZE = 4096
 EMBEDDING_SIZE_DEFAULT = 256
-EVAL_FREQ_DEFAULT = 100
+EVAL_FREQ_DEFAULT = 5000
 PRINT_FREQ_DEFAULT = 50
 MAX_STEPS_DEFAULT = 10000
 MAX_GRAD_NORM = 15
@@ -38,7 +39,8 @@ VAL_FREQ_DEFAULT = 100
 DEFAULT_VOCAB_FILE = 'vocab.txt'
 ONE_HOT_DEFAULT = False
 LEARNING_RATE_DEFAULT = 1e-3
-
+CHECKPOINT_FREQ_DEFAULT = 2000
+MODEL_NAME_DEFAULT = 'tmp_model'
 def calc_cross_ent(net_output, mask, targets):
 		# Helper function to calculate the cross entropy error
 		preds = T.reshape(net_output, (-1, VOCAB_SIZE))
@@ -65,6 +67,7 @@ def prepare_placeholders():
 
 
 def inference():
+
 	print('Building model...')
 	print("Vocabulary size:%d"%(VOCAB_SIZE))
 	# Create model
@@ -91,9 +94,7 @@ def inference():
 	#softmax layer
 	l_decoder = lasagne.layers.DenseLayer(l_shp, num_units=VOCAB_SIZE, nonlinearity=lasagne.nonlinearities.softmax)
 	#reshape to vocab_size
-	print(l_decoder.output_shape)
-	print(l_decoder.input_shape)
-	l_out = lasagne.layers.ReshapeLayer(l_decoder, (l_decoder.input_shape[1], FLAGS.seq_length, VOCAB_SIZE))
+	l_out = lasagne.layers.ReshapeLayer(l_decoder, (FLAGS.batch_size, FLAGS.seq_length, VOCAB_SIZE))
 
 	return l_input_sentence,l_input_cnn,l_out
 
@@ -123,6 +124,16 @@ def loss(prediction,mask,ground_truth):
 
 def train():
 
+	start_initial = time.time()
+	session_name = './'+FLAGS.name +'/'
+
+	if not os.path.exists(session_name):
+		os.makedirs(session_name)
+
+	train_monitor = session_name + 'results.csv'
+	validation_monitor = session_name + 'validation_results.csv'
+	test_monitor = session_name + 'test_results.csv'
+	meta = session_name + 'meta.csv'
 	print('Preparing data...')
 	file = './datasets/processed/'+str(FLAGS.max_sentence)
 	print(file)
@@ -134,10 +145,14 @@ def train():
 		print('Loading features/captions')
 		train_data,test_data,val_data = lstm_utils.get_merged(max_length = FLAGS.max_sentence,
 			validation_size=FLAGS.val_size)
-
-
-	f = open('results.txt','w+')
-	write_flags_to_file(f)
+	train_file = open(train_monitor,'w+')
+	train_file.write('Step,Loss,Gradient Norm\n')
+	val_file   = open(validation_monitor,'w+')
+	val_file.write('Step,Loss,Bleu-1,Bleu-4')
+	test_file  = open(test_monitor,'w+')
+	test_file.write('Step,Loss,Bleu-1,Bleu-4')
+	meta_info  = open(meta,'w+')
+	write_flags_to_file(meta_info)
 
 	x_cnn_sym , x_sentence_sym,y_sentence_sym,mask_sym = prepare_placeholders()
 
@@ -160,78 +175,104 @@ def train():
 	updates = lasagne.updates.adam(all_grads, all_params, learning_rate=FLAGS.learning_rate)
 	print('Testing next batch method.')
 	x_cnn, x_sentence, y_sentence, mask = prep_batch_for_network(train_data,FLAGS.batch_size)
+	
+	f_val = theano.function([x_cnn_sym, x_sentence_sym, mask_sym, y_sentence_sym], [loss_op,predictions])
+	file = session_name+'test.csv'
+	f = open(file,'w+')
+	
 
+
+	print('Testing test model method.')
+	# test_loss,test_bleu1,test_bleu4 = test_model(test_data,0,f,f_val)
+
+	print('Testing vali model method.')
+	# val_loss,val_bleu1,val_bleu4 = validate_model(val_data,f_val)
 	print('Building training/test operations...')
-
 	f_train = theano.function([x_cnn_sym, x_sentence_sym, mask_sym, y_sentence_sym],
 												 [loss_op, norm],
 												 updates=updates
 												)
-	f_val = theano.function([x_cnn_sym, x_sentence_sym, mask_sym, y_sentence_sym], [loss_op,predictions])
+	
 
 
 	max_steps = FLAGS.max_steps
+
+
 	for step in range(max_steps):
 
 		start =  time.time()
 		x_cnn, x_sentence, y_sentence, mask = prep_batch_for_network(train_data,FLAGS.batch_size)
-
 		train_loss, norm = f_train(x_cnn, x_sentence, mask, y_sentence)
 		
-		
 		duration = time.time() - start
+		
 		if step % FLAGS.print_freq == 0:
 			out =  \
 				'==================================================================================\n'+\
 				'Step \t%d/%d:\t train_loss =  %8e  \t norm %3.5f (%.4f sec)\n' % (step ,  max_steps , train_loss ,norm , duration)+\
 				'==================================================================================\n'
 			print(out)
-			f.write(out+"\n")
-			f.flush()
+			line = '%s,%s,%s\n'%(str(step),str(train_loss),str(norm))
+			train_file.write(line)
+			train_file.flush()
+
 		start = time.time()
 
-		if step %FLAGS.eval_freq == 0:
-			print('--TODO TESTING')
-
-		if step % FLAGS.val_freq == 0:
+		if step %FLAGS.check_freq == 0 and step != max_steps:
+			file = session_name+'checkpoint_'+str(step)+'.csv'
+			f = open(file,'w+')
+			f.write("step,prediction,target,bleu-1,bleu-4,url\n")
+			test_loss,test_bleu1,test_bleu4 = test_model(test_data,step,f,f_val)
 			duration = time.time() - start
-			try:
-				x_cnn, x_sentence, y_sentence, mask = prep_batch_for_network(val_data,val_data.features.shape[0])
-
-				loss_val,val_preds = f_val(x_cnn, x_sentence, mask, y_sentence)
-				print(val_preds.shape)
-				print(y_sentence.shape)
-
-				_print_random_k(val_preds,y_sentence,num_captions=FLAGS.caption_print)
-
-				out =  \
+			out =  \
 					'==================================================================================\n'+\
-					'Step \t%d/%d:\t test_loss =  %8e  (%.4f sec)\n' % (step ,  max_steps , loss_val , duration)+\
+					'Step \t%d/%d:\t test_loss =  %8e \t bleu1 = %2.5f \t bleu4 %2.5f  (%.4f sec)\n' % (step ,  max_steps , test_loss ,test_bleu1,test_bleu4 , duration)+\
 					'==================================================================================\n'
-				start = time.time()
-				print(out)
-				f.write(out+"\n")
-				f.flush()
-			except IndexError:
-				print('index error?')
-				start = time.time()
-				continue 
-	f.close()
+			start = time.time()
+
+			line = '%s,%s,%s,%s\n'%(str(step),str(test_loss),str(test_bleu1),str(test_bleu4))
+			test_file.write(line)
+			test_file.flush()
+			print(out)
+
+		if step % FLAGS.val_freq == 0 and step != max_steps:
+
+			val_loss,val_bleu1,val_bleu4 = validate_model(val_data,f_val)
+
+			duration = time.time() - start
+
+			out =  \
+				'==================================================================================\n'+\
+				'Step \t%d/%d:\t test_loss =  %8e \t bleu1 = %2.5f \t bleu4 %2.5f  (%.4f sec)\n' % (step ,  max_steps , val_loss,val_bleu1,val_bleu4, duration)+\
+				'==================================================================================\n'
+			print(out)
+			line = '%s,%s,%s,%s\n'%(str(step),str(val_loss),str(val_bleu1),str(val_bleu4))
+			val_file.write(line)
+			val_file.flush()
+			start = time.time()
+
+
+	total_duration = time.time() - start_initial
+
+	train_file.close()
+	val_file.close()
+	test_file.close()
+	meta_info.close()
 
 
 
 
-def _print_random_k(predictions,targets,num_captions=15):
+def _print_random_k(predictions,targets,bleu1,bleu4,num_captions=15):
 	pred_indices = np.argmax(predictions,axis=2)
 	for i in range(num_captions):
 		pred = _map_to_sentence(pred_indices[i])
 		target = _map_to_sentence(targets[i])
 		print('========================================%d/%d image==========================================================='%(i+1,num_captions))
-		print('Real caption:\t %s'%(' '.join(target)))
-		print('Generated caption:\t %s'%(' '.join(pred)))
+		print('Real caption:\t%s'%(' '.join(target)))
+		print('Generated caption:\t%s'%(' '.join(pred)))
+		print('Bleu-1:\t%s\tBleu-4\t%s'%(bleu1[i],bleu4[i]))
 		print('===============================================================================================================')
 		print('')
-		
 
 
 
@@ -246,43 +287,183 @@ def print_flags():
 	for key, value in vars(FLAGS).items():
 		print(key + ' : ' + str(value))
 
-def _test_model(dataset,size=1000):
-	total_acc = 0.
+def test_model(dataset,step,file,f_val,size=32):
+	
+	total_bleu1 = 0.
+	total_bleu4 = 0.
 	test_loss = 0.
-	features = dataset.features
-	captions = dataset.captions
-	test_size = dataset.captions.shape[0]
-	test_batches = test_size/size
-
+	features = dataset.features[0:6400]
+	captions = dataset.captions[0:6400]
+	urls = dataset.urls[0:6400]
+	test_size = captions.shape[0]
+	test_batches = round(test_size/size)
 	chunks = np.array_split(range(test_size),test_batches)
 
-	for i,chunk in enumerate(chunks):
-		
-		x_sentence = np.zeros((len(captions), FLAGS.seq_length - 1), dtype='int32')
-		y_sentence = np.zeros((len(captions), FLAGS.seq_length), dtype='int32')
-		mask = np.zeros((len(captions), FLAGS.seq_length), dtype='bool')		
-		
-		feature_chunk = faetures[chunk]
+
+	preds = np.zeros((captions.shape[0]))
+	if FLAGS.one_hot:
+		print('apply one-hot encoding')
+		num_classes =  len(vocabulary._vocab)
+		captions = lstm_utils.dense_to_one_hot(captions, num_classes)
+	for c,chunk in enumerate(chunks):
+				
+		feature_chunk = features[chunk]
 		caption_chunk = captions[chunk]
-		
-	
-		for j in range(len(features_chunk)):
+		url_chunk 	  = urls[chunk]
+		x_cnn = floatX(np.zeros((len(feature_chunk), 4096)))
+		x_sentence = np.zeros((len(caption_chunk), FLAGS.seq_length - 1), dtype='int32')
+		y_sentence = np.zeros((len(caption_chunk), FLAGS.seq_length), dtype='int32')
+		mask = np.zeros((len(caption_chunk), FLAGS.seq_length), dtype='bool')
+
+		#### RESHAPE SENTENCES TO FEED TO THE NETWORK ##############
+		for j in range(len(feature_chunk)):
 			x_cnn[j] = feature_chunk[j]
 			i = 0
 			caption_list = caption_chunk[j].tolist()
+
+			if not FLAGS.one_hot:
+				start_tk 	= [start_v]
+				end_tk 		= [end_v]
+			else:
+				start_tk 			= np.zeros((1,num_classes),dtype='int32')
+				start_tk[0,start] 	= 1
+				end_tk 				= np.zeros((1,num_classes),dtype='int32')
+				end_tk[0,end] 		= 1
+				start_tk 			= start_tk.tolist()
+				end_tk 				= end_tk.tolist()
+
 			# caption_list = [vocabulary.word_to_id("#START#")] + caption_list + [vocabulary.word_to_id("#END#")] 
+
+			mapped  = _map_to_sentence(caption_list)
+			# print(mapped)
 			for index,word in enumerate(caption_list):
 				mask[j,i] = True
 				y_sentence[j, i] = word
 				x_sentence[j, i] = word
 				i += 1
-		test_loss,test_preds = f_val(x_cnn, x_sentence, mask, y_sentence)
-		print("running for chunk %d/%d ,test_loss %e"%(i,len(chunks),test_loss))
-		test_loss += test_loss
 
-	test_loss /= test_batches
+		chunk_loss,val_preds = f_val(x_cnn, x_sentence, mask, y_sentence)
+		bleu1_chunk = np.zeros((len(caption_chunk),1))
+		bleu4_chunk = np.zeros((len(caption_chunk),1))
+		test_preds = np.argmax(val_preds,axis=2)
 
-	return test_loss
+		for k,sentence in enumerate(caption_chunk):
+			real_length = len(sentence)
+			sentence = _map_to_sentence(sentence)
+			pred = _map_to_sentence(test_preds[k])
+			pred = pred[0:real_length]
+			bleu1_chunk[k],bleu4_chunk[k] = bleuscore.bleu_score(sentence,pred)
+			# print('%s,%s,%s,%s,%s,%s\n'%(str(i),str(pred),str(sentence),str(bleu1_chunk[i]),str(bleu4_chunk[i]),str(url_chunk[i])))
+			file.write('%s,%s,%s,%s,%s,%s\n'%(str(k*(c+1)),'\"'+str(' '.join(pred))+'\"','\"'+str(' '.join(sentence))+'\"',str(bleu1_chunk[k]),str(bleu4_chunk[k]),str(url_chunk[k])))
+			file.flush()
+
+		total_bleu1 += np.sum(bleu1_chunk)
+		total_bleu4 += np.sum(bleu4_chunk)
+		test_loss += chunk_loss
+		# print("running for chunk %d/%d-%d ,test_loss %2.8f bleu1 %2.5f bleu4 %2.5f"%(c,len(chunks),len(chunk),chunk_loss,np.mean(bleu1_chunk),np.mean(bleu4_chunk)))
+	
+	total_bleu1 /= len(urls)
+	total_bleu4 /= len(urls)
+	test_loss   /= len(chunks)
+
+	return test_loss,total_bleu1,total_bleu4
+
+
+
+
+
+def validate_model(dataset,f_val,size=32):
+	
+
+	total_bleu1 = 0.
+	total_bleu4 = 0.
+	test_loss = 0.
+	features = dataset.features
+	captions = dataset.captions
+	urls     = dataset.urls
+	test_size = dataset.captions.shape[0]
+	test_batches = test_size/size
+	chunks = np.array_split(range(test_size),test_batches)
+	preds = np.zeros((captions.shape[0]))
+	if FLAGS.one_hot:
+		print('apply one-hot encoding')
+		num_classes =  len(vocabulary._vocab)
+		captions = lstm_utils.dense_to_one_hot(captions, num_classes)
+	for c,chunk in enumerate(chunks):
+			
+		
+		feature_chunk = features[chunk]
+		caption_chunk = captions[chunk]
+		url_chunk     = urls[chunk]
+		
+		x_cnn = floatX(np.zeros((len(feature_chunk), 4096)))
+		x_sentence = np.zeros((len(caption_chunk), FLAGS.seq_length - 1), dtype='int32')
+		y_sentence = np.zeros((len(caption_chunk), FLAGS.seq_length), dtype='int32')
+		mask = np.zeros((len(caption_chunk), FLAGS.seq_length), dtype='bool')	
+
+
+		for j in range(len(feature_chunk)):
+			x_cnn[j] = feature_chunk[j]
+			i = 0
+			caption_list = caption_chunk[j].tolist()
+
+			if not FLAGS.one_hot:
+				start_tk 	= [start_v]
+				end_tk 		= [end_v]
+			else:
+				start_tk 			= np.zeros((1,num_classes),dtype='int32')
+				start_tk[0,start] 	= 1
+				end_tk 				= np.zeros((1,num_classes),dtype='int32')
+				end_tk[0,end] 		= 1
+				start_tk 			= start_tk.tolist()
+				end_tk 				= end_tk.tolist()
+
+			# caption_list = [vocabulary.word_to_id("#START#")] + caption_list + [vocabulary.word_to_id("#END#")] 
+
+			mapped  = _map_to_sentence(caption_list)
+
+			for index,word in enumerate(caption_list):
+				mask[j,i] = True
+				y_sentence[j, i] = word
+				x_sentence[j, i] = word
+				i += 1
+		chunk_loss,val_preds = f_val(x_cnn, x_sentence, mask, y_sentence)
+
+
+		bleu1_chunk = np.zeros((len(caption_chunk),1))
+		bleu4_chunk = np.zeros((len(caption_chunk),1))
+		test_preds = np.argmax(val_preds,axis=2)
+
+		chunk_loss,val_preds = f_val(x_cnn, x_sentence, mask, y_sentence)
+		bleu1_chunk = np.zeros((len(caption_chunk),1))
+		bleu4_chunk = np.zeros((len(caption_chunk),1))
+		test_preds = np.argmax(val_preds,axis=2)
+
+		indices = np.arange(caption_chunk.shape[0])
+		to_print_reals = caption_chunk[indices[0:FLAGS.caption_print]]
+		to_print_vals  = val_preds[indices[0:FLAGS.caption_print]]
+
+	
+		for k,sentence in enumerate(caption_chunk):
+			real_length = len(sentence)
+			sentence = _map_to_sentence(sentence)
+			pred = _map_to_sentence(test_preds[k])
+			pred = pred[0:real_length]
+			bleu1_chunk[k],bleu4_chunk[k] = bleuscore.bleu_score(sentence,pred)
+			# file.write('%s,%s,%s,%s,%s,%s\n'%(str(k*(c+1)),'\"'+str(' '.join(pred))+'\"','\"'+str(' '.join(sentence))+'\"',str(bleu1_chunk[k]),str(bleu4_chunk[k]),str(url_chunk[k])))
+
+		total_bleu1 += np.sum(bleu1_chunk)
+		total_bleu4 += np.sum(bleu4_chunk)
+		test_loss += chunk_loss
+		# print("running for chunk %d/%d-%d ,test_loss %2.8f bleu1 %2.5f bleu4 %2.5f"%(c,len(chunks),len(chunk),chunk_loss,np.mean(bleu1_chunk),np.mean(bleu4_chunk)))
+	
+	total_bleu1 /= len(urls)
+	total_bleu4 /= len(urls)
+	test_loss   /= len(chunks)
+		
+
+	return test_loss,total_bleu1,total_bleu4
+
 
 
 
@@ -382,6 +563,10 @@ if __name__ == '__main__':
 						help='Default vocabulary file')
 	parser.add_argument('--one_hot',type=str,default=ONE_HOT_DEFAULT,
 						help='apply one hot encoding')
+	parser.add_argument('--check_freq',type=int,default=CHECKPOINT_FREQ_DEFAULT,
+						help='test and save results ')
+	parser.add_argument('--name',type=str,default=MODEL_NAME_DEFAULT,
+						help = 'model name')
 	FLAGS, unparsed = parser.parse_known_args()
 
 	vocabulary  = Vocabulary(FLAGS.vocab_file,None,None,flag='load')
