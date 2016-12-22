@@ -26,7 +26,7 @@ SEQUENCE_LENGTH_DEFAULT = 32
 MAX_SENTENCE_LENGTH_DEFAULT = SEQUENCE_LENGTH_DEFAULT - 3 # 1 for image, 1 for start token, 1 for end token
 BATCH_SIZE_DEFAULT = 32
 CNN_FEATURE_SIZE = 4096
-EMBEDDING_SIZE_DEFAULT = 512
+EMBEDDING_SIZE_DEFAULT = 512	
 EVAL_FREQ_DEFAULT = 5000
 PRINT_FREQ_DEFAULT = 50
 MAX_STEPS_DEFAULT = 10000
@@ -38,9 +38,10 @@ VALIDATION_SIZE_DEFAULT = 256
 VAL_FREQ_DEFAULT = 100
 DEFAULT_VOCAB_FILE = 'vocab.txt'
 ONE_HOT_DEFAULT = False
-LEARNING_RATE_DEFAULT = 1e-3
+LEARNING_RATE_DEFAULT = 1e-4
 CHECKPOINT_FREQ_DEFAULT = 2000
 MODEL_NAME_DEFAULT = 'tmp_model'
+APPEND_DEFAULT = False
 def calc_cross_ent(net_output, mask, targets):
 		# Helper function to calculate the cross entropy error
 		preds = T.reshape(net_output, (-1, VOCAB_SIZE))
@@ -150,7 +151,7 @@ def train():
 	val_file   = open(validation_monitor,'w+')
 	val_file.write('Step,Loss,Bleu-1,Bleu-4\n')
 	test_file  = open(test_monitor,'w+')
-	test_file.write('Step,Loss,Bleu-1,Bleu-4\np')
+	test_file.write('Step,Loss,Bleu-1,Bleu-4\n')
 	meta_info  = open(meta,'w+')
 	write_flags_to_file(meta_info)
 
@@ -177,8 +178,10 @@ def train():
 	x_cnn, x_sentence, y_sentence, mask = prep_batch_for_network(train_data,FLAGS.batch_size)
 	
 	f_val = theano.function([x_cnn_sym, x_sentence_sym, mask_sym, y_sentence_sym], [loss_op,predictions])
-	file = session_name+'test.csv'
-	f = open(file,'w+')
+	
+
+	# file = session_name+'test.csv'
+	# f = open(file,'w+')
 	
 
 
@@ -337,8 +340,9 @@ def test_model(dataset,step,file,f_val,size=32):
 				end_tk[0,end] 		= 1
 				start_tk 			= start_tk.tolist()
 				end_tk 				= end_tk.tolist()
-
-			# caption_list = [vocabulary.word_to_id("#START#")] + caption_list + [vocabulary.word_to_id("#END#")] 
+			
+			if FLAGS.append
+				caption_list = start_tk + caption_list + end_tk
 
 			mapped  = _map_to_sentence(caption_list)
 			# print(mapped)
@@ -423,8 +427,9 @@ def validate_model(dataset,f_val,size=32):
 				end_tk[0,end] 		= 1
 				start_tk 			= start_tk.tolist()
 				end_tk 				= end_tk.tolist()
-
-			# caption_list = [vocabulary.word_to_id("#START#")] + caption_list + [vocabulary.word_to_id("#END#")] 
+			
+			if FLAGS.append
+				caption_list = start_tk + caption_list + end_tk
 
 			mapped  = _map_to_sentence(caption_list)
 
@@ -505,8 +510,8 @@ def prep_batch_for_network(dataset,batch_size):
 			start_tk 			= start_tk.tolist()
 			end_tk 				= end_tk.tolist()
 
-
-		# caption_list = start_tk + caption_list + end_tk
+		if FLAGS.append
+			caption_list = start_tk + caption_list + end_tk
 
 		mapped  = _map_to_sentence(caption_list)
 		# print(mapped)
@@ -573,6 +578,8 @@ if __name__ == '__main__':
 						help='test and save results ')
 	parser.add_argument('--name',type=str,default=MODEL_NAME_DEFAULT,
 						help = 'model name')
+	parser.add_argument('--append',type=bool,default=APPEND_DEFAULT,
+						help = 'append start,end token')
 	FLAGS, unparsed = parser.parse_known_args()
 
 	vocabulary  = Vocabulary(FLAGS.vocab_file,None,None,flag='load')
