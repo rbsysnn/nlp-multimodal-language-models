@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.16 (MiKTeX 2.9) (preloaded format=pdflatex 2016.3.29)  22 DEC 2016 12:55
+This is pdfTeX, Version 3.14159265-2.6-1.40.16 (MiKTeX 2.9) (preloaded format=pdflatex 2016.3.29)  22 DEC 2016 13:13
 entering extended mode
 **./report_group11.tex
 (report_group11.tex
@@ -591,21 +591,21 @@ Package: float 2001/11/08 v1.3d Float enhancements (AL)
 ) (report_group11.aux)
 \openout1 = `report_group11.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 50.
-LaTeX Font Info:    ... okay on input line 50.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 50.
-LaTeX Font Info:    ... okay on input line 50.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 50.
-LaTeX Font Info:    ... okay on input line 50.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 50.
-LaTeX Font Info:    ... okay on input line 50.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 50.
-LaTeX Font Info:    ... okay on input line 50.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 50.
-LaTeX Font Info:    ... okay on input line 50.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 50.
-LaTeX Font Info:    ... okay on input line 50.
-LaTeX Font Info:    Try loading font information for T1+ptm on input line 50.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 49.
+LaTeX Font Info:    ... okay on input line 49.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 49.
+LaTeX Font Info:    ... okay on input line 49.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 49.
+LaTeX Font Info:    ... okay on input line 49.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 49.
+LaTeX Font Info:    ... okay on input line 49.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 49.
+LaTeX Font Info:    ... okay on input line 49.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 49.
+LaTeX Font Info:    ... okay on input line 49.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 49.
+LaTeX Font Info:    ... okay on input line 49.
+LaTeX Font Info:    Try loading font information for T1+ptm on input line 49.
 
 ("C:\Users\Dimitris\AppData\Local\Programs\MiKTeX 2.9\tex\latex\psnfss\t1ptm.fd
 "
@@ -678,7 +678,7 @@ File: t1ptm.fd 2001/06/04 font definitions for T1/ptm.
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
 \AtBeginShipoutBox=\box30
-Package hyperref Info: Link coloring OFF on input line 50.
+Package hyperref Info: Link coloring OFF on input line 49.
 
 ("C:\Users\Dimitris\AppData\Local\Programs\MiKTeX 2.9\tex\latex\hyperref\namere
 f.sty"
@@ -690,14 +690,14 @@ Package: gettitlestring 2010/12/03 v1.4 Cleanup title references (HO)
 )
 \c@section@level=\count120
 )
-LaTeX Info: Redefining \ref on input line 50.
-LaTeX Info: Redefining \pageref on input line 50.
-LaTeX Info: Redefining \nameref on input line 50.
+LaTeX Info: Redefining \ref on input line 49.
+LaTeX Info: Redefining \pageref on input line 49.
+LaTeX Info: Redefining \nameref on input line 49.
  (report_group11.out) (report_group11.out)
 \@outlinefile=\write3
 \openout3 = `report_group11.out'.
 
-LaTeX Info: Redefining \microtypecontext on input line 50.
+LaTeX Info: Redefining \microtypecontext on input line 49.
 Package microtype Info: Generating PDF output.
 Package microtype Info: Character protrusion enabled (level 2).
 Package microtype Info: Using default protrusion set `alltext'.
@@ -733,14 +733,14 @@ Package caption Info: Begin \AtBeginDocument code.
 Package caption Info: float package is loaded.
 Package caption Info: End \AtBeginDocument code.
 LaTeX Font Info:    Font shape `T1/ptm/bx/n' in size <17.28> not available
-(Font)              Font shape `T1/ptm/b/n' tried instead on input line 55.
+(Font)              Font shape `T1/ptm/b/n' tried instead on input line 54.
 
 ("C:\Users\Dimitris\AppData\Local\Programs\MiKTeX 2.9\tex\latex\microtype\mt-cm
 r.cfg"
 File: mt-cmr.cfg 2013/05/19 v2.2 microtype config. file: Computer Modern Roman 
 (RS)
 )
-LaTeX Font Info:    Try loading font information for U+msa on input line 55.
+LaTeX Font Info:    Try loading font information for U+msa on input line 54.
 
 ("C:\Users\Dimitris\AppData\Local\Programs\MiKTeX 2.9\tex\latex\amsfonts\umsa.f
 d"
@@ -750,7 +750,7 @@ File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 a.cfg"
 File: mt-msa.cfg 2006/02/04 v1.1 microtype config. file: AMS symbols (a) (RS)
 )
-LaTeX Font Info:    Try loading font information for U+msb on input line 55.
+LaTeX Font Info:    Try loading font information for U+msb on input line 54.
 
 ("C:\Users\Dimitris\AppData\Local\Programs\MiKTeX 2.9\tex\latex\amsfonts\umsb.f
 d"
@@ -761,8 +761,8 @@ b.cfg"
 File: mt-msb.cfg 2005/06/01 v1.0 microtype config. file: AMS symbols (b) (RS)
 )
 LaTeX Font Info:    Font shape `T1/ptm/bx/n' in size <10> not available
-(Font)              Font shape `T1/ptm/b/n' tried instead on input line 55.
-LaTeX Font Info:    Try loading font information for T1+cmtt on input line 55.
+(Font)              Font shape `T1/ptm/b/n' tried instead on input line 54.
+LaTeX Font Info:    Try loading font information for T1+cmtt on input line 54.
 
 ("C:\Users\Dimitris\AppData\Local\Programs\MiKTeX 2.9\tex\latex\base\t1cmtt.fd"
 File: t1cmtt.fd 2014/09/29 v2.5h Standard LaTeX font definitions
@@ -772,56 +772,62 @@ Package microtype Info: Loading generic settings for font family
 (microtype)             For optimal results, create family-specific settings.
 (microtype)             See the microtype manual for details.
 LaTeX Font Info:    Font shape `T1/ptm/bx/n' in size <12> not available
-(Font)              Font shape `T1/ptm/b/n' tried instead on input line 55.
+(Font)              Font shape `T1/ptm/b/n' tried instead on input line 54.
  <./images/model.png, id=68, 242.9075pt x 511.9125pt>
 File: ./images/model.png Graphic file (type png)
 
 <use ./images/model.png>
-Package pdftex.def Info: ./images/model.png used on input line 82.
+Package pdftex.def Info: ./images/model.png used on input line 81.
 (pdftex.def)             Requested size: 143.09483pt x 301.55708pt.
  [1
 
 
-{C:/Users/Dimitris/AppData/Local/MiKTeX/2.9/pdftex/config/pdftex.map}] [2 <./im
-ages/model.png>]
-<./images/sample_input.png, id=85, 965.6075pt x 702.625pt>
+{C:/Users/Dimitris/AppData/Local/MiKTeX/2.9/pdftex/config/pdftex.map}]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [2 <./images/model.png>] <./images/sample_input.png, id=85, 965.6075pt x 702.6
+25pt>
 File: ./images/sample_input.png Graphic file (type png)
 
 <use ./images/sample_input.png>
-Package pdftex.def Info: ./images/sample_input.png used on input line 117.
+Package pdftex.def Info: ./images/sample_input.png used on input line 116.
 (pdftex.def)             Requested size: 143.09483pt x 104.1241pt.
 
 <./images/accuracy.png, id=88, 918.43124pt x 386.44376pt>
 File: ./images/accuracy.png Graphic file (type png)
 
 <use ./images/accuracy.png>
-Package pdftex.def Info: ./images/accuracy.png used on input line 158.
+Package pdftex.def Info: ./images/accuracy.png used on input line 157.
 (pdftex.def)             Requested size: 298.11374pt x 125.43352pt.
  <./images/loss.png, id=89, 931.48pt x 381.425pt>
 File: ./images/loss.png Graphic file (type png)
 
 <use ./images/loss.png>
-Package pdftex.def Info: ./images/loss.png used on input line 163.
+Package pdftex.def Info: ./images/loss.png used on input line 162.
 (pdftex.def)             Requested size: 298.11374pt x 122.07013pt.
- [3 <./images/sample_input.png>]
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 187.
+ [3 <./images/sample_input.png>] (report_group11.bbl
+
+Package natbib Warning: Empty `thebibliography' environment on input line 3.
+
+)
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 189.
  [4 <./images/accuracy.png> <./images/loss.png>]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 187.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 189.
  (report_group11.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 187.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 187.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 189.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 189.
 Package rerunfilecheck Info: File `report_group11.out' has not changed.
 (rerunfilecheck)             Checksum: 44CACECC3B9CFF0F90349DE2A546962F;905.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 187.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 189.
  ) 
 Here is how much of TeX's memory you used:
- 10469 strings out of 493634
- 162792 string characters out of 3134015
- 280786 words of memory out of 3000000
+ 10473 strings out of 493634
+ 162842 string characters out of 3134015
+ 281788 words of memory out of 3000000
  13628 multiletter control sequences out of 15000+200000
  29780 words of font info for 87 fonts, out of 3000000 for 9000
  1025 hyphenation exceptions out of 8191
- 42i,8n,40p,363b,439s stack positions out of 5000i,500n,10000p,200000b,50000s
+ 42i,8n,40p,476b,439s stack positions out of 5000i,500n,10000p,200000b,50000s
 {C:/Users/Dimitris/AppData/Local/Programs/MiKTeX 2.9/fonts/enc/dvips/fontname
 /8r.enc} <C:\Users\Dimitris\AppData\Local\MiKTeX\2.9\fonts\pk\ljfour\jknappen\e
 c\dpi600\ectt1000.pk><C:/Users/Dimitris/AppData/Local/Programs/MiKTeX 2.9/fonts
@@ -829,9 +835,9 @@ c\dpi600\ectt1000.pk><C:/Users/Dimitris/AppData/Local/Programs/MiKTeX 2.9/fonts
 MiKTeX 2.9/fonts/type1/urw/times/utmb8a.pfb><C:/Users/Dimitris/AppData/Local/Pr
 ograms/MiKTeX 2.9/fonts/type1/urw/times/utmr8a.pfb><C:/Users/Dimitris/AppData/L
 ocal/Programs/MiKTeX 2.9/fonts/type1/urw/times/utmri8a.pfb>
-Output written on report_group11.pdf (4 pages, 481759 bytes).
+Output written on report_group11.pdf (4 pages, 481933 bytes).
 PDF statistics:
- 151 PDF objects out of 1000 (max. 8388607)
- 26 named destinations out of 1000 (max. 500000)
+ 152 PDF objects out of 1000 (max. 8388607)
+ 27 named destinations out of 1000 (max. 500000)
  18581 words of extra memory for PDF output out of 20736 (max. 10000000)
 

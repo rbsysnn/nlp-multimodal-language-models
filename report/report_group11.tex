@@ -18,7 +18,6 @@
 \usepackage{url}            % simple URL typesetting
 \usepackage{booktabs}       % professional-quality tables
 \usepackage{amsfonts}       % blackboard math symbols
-
 \usepackage{microtype}      % microtypography
 \usepackage{listings, graphicx, subcaption, float}
 
@@ -92,9 +91,9 @@ Attached to each image are five descriptive captions. Each caption consists of a
 %TODO: how do we feed this to the LSTM
 
 \subsection{Vocabulary}
-Words from the training captions are counted and stored. With Kipf's law in mind, we assume that low frequency words in our sample are also rare in the English language. Therefore, and to control for an extremely large vocabulary size, words with less than $n$ appearances in the total training set are discarded.
+Words from the training captions are counted and stored. With Zipf's law in mind, we assume that low frequency words in our sample are also rare in the English language. Therefore, and to control for an extremely large vocabulary size, words with less than $n$ appearances in the total training set are discarded.
 
-In the initial setup, we require a minimum of four appearances for a word to be kept in the vocabulary. Our reasoning is that if a word does not at least appear in all five captions of an image, then it is not essential for properly describing it.
+In the initial setup, we require a minimum of four appearances for a word to be kept in the vocabulary. Our reasoning is that if a word does not at least appear in all five captions of an image, then it is not essential for properly describing it. At the beginning, number of required appearances was chosen arbitrarily, however we experiment with different minimum and compare the effects it has on our results, but we analyse it further in section 5.
 
 After counting and selecting the words to be included, we sort them by decreasing count, and store them for latter use.
 
@@ -183,5 +182,8 @@ We compare index encoding against one hot encoding.
 [1] Abadi, M., Agarwal, A., Barham, P., Brevdo, E., Chen, Z., Citro, C., ... \ \& Ghemawat, S. \ (2015). TensorFlow: Large-scale machine learning on heterogeneous systems, 2015. {\it Software available from tensorflow. org}.
 
 [2] 
+
+\bibliographystyle{plain}
+\bibliography{mybib}
 
 \end{document}
