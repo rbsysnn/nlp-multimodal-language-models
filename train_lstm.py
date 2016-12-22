@@ -226,6 +226,7 @@ def train():
 			file = session_name+'checkpoint_'+str(step)+'.csv'
 			f = open(file,'w+')
 			f.write("id,prediction,target,bleu-1,bleu-4,url\n")
+			f.flush()
 			out =  \
 				'==================================================================================\n'+\
 				'Saving checkpoint at step %d\t in filename %s\n'%(step,file)+\
@@ -244,7 +245,7 @@ def train():
 			test_file.flush()
 			print(out)
 
-		if step % FLAGS.val_freq == 0 and step != max_steps:
+		if step % FLAGS.val_freq == 0:
 
 			val_loss,val_bleu1,val_bleu4 = validate_model(val_data,f_val)
 
@@ -260,8 +261,21 @@ def train():
 			val_file.flush()
 			start = time.time()
 
+	file = session_name+'final_checkpoint.csv'
+	f = open(file,'w+')
+	test_loss,test_bleu1,test_bleu4 = test_model(test_data,step,f,f_val)
 
 	total_duration = time.time() - start_initial
+	out =  \
+			'==================================================================================================\n'+\
+			'Step \t%d/%d:\t final test_loss \t=  %2.8f \t bleu1 = %2.5f \t bleu4 %2.5f  (%.4f sec)\n' % (step ,  max_steps , test_loss ,test_bleu1,test_bleu4 , total_duration)+\
+			'==================================================================================================\n'
+	start = time.time()
+
+	line = '%s,%s,%s,%s\n'%(str(step),str(test_loss),str(test_bleu1),str(test_bleu4))
+	test_file.write(line)
+	test_file.flush()
+	print(out)
 
 	train_file.close()
 	val_file.close()
@@ -341,7 +355,7 @@ def test_model(dataset,step,file,f_val,size=32):
 				start_tk 			= start_tk.tolist()
 				end_tk 				= end_tk.tolist()
 			
-			if FLAGS.append
+			if FLAGS.append:
 				caption_list = start_tk + caption_list + end_tk
 
 			mapped  = _map_to_sentence(caption_list)
@@ -428,7 +442,7 @@ def validate_model(dataset,f_val,size=32):
 				start_tk 			= start_tk.tolist()
 				end_tk 				= end_tk.tolist()
 			
-			if FLAGS.append
+			if FLAGS.append:
 				caption_list = start_tk + caption_list + end_tk
 
 			mapped  = _map_to_sentence(caption_list)
@@ -510,7 +524,7 @@ def prep_batch_for_network(dataset,batch_size):
 			start_tk 			= start_tk.tolist()
 			end_tk 				= end_tk.tolist()
 
-		if FLAGS.append
+		if FLAGS.append:
 			caption_list = start_tk + caption_list + end_tk
 
 		mapped  = _map_to_sentence(caption_list)
