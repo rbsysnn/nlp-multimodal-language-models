@@ -152,6 +152,7 @@ def read_data_sets(data_dir, validation_size,max_length):
 			continue
 		feature = dataset[j][0]
 		caption = dataset[j][1]
+		url 	= dataset[j][2]
 		features.append(feature)
 		captions.append(caption)
 		urls.append(url)

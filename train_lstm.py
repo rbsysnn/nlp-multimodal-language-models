@@ -172,7 +172,7 @@ def train():
 		 all_grads, MAX_GRAD_NORM, return_norm=True)
 	print('Building network optimizer...')
 
-	updates = lasagne.updates.adam(all_grads, all_params, learning_rate=FLAGS.learning_rate)
+	updates = lasagne.updates.sgd(all_grads, all_params, learning_rate=FLAGS.learning_rate)
 	print('Testing next batch method.')
 	x_cnn, x_sentence, y_sentence, mask = prep_batch_for_network(train_data,FLAGS.batch_size)
 	
@@ -182,10 +182,10 @@ def train():
 	
 
 
-	print('Testing test model method.')
+	# print('Testing test model method.')
 	# test_loss,test_bleu1,test_bleu4 = test_model(test_data,0,f,f_val)
 
-	print('Testing vali model method.')
+	# print('Testing vali model method.')
 	# val_loss,val_bleu1,val_bleu4 = validate_model(val_data,f_val)
 	print('Building training/test operations...')
 	f_train = theano.function([x_cnn_sym, x_sentence_sym, mask_sym, y_sentence_sym],
@@ -204,9 +204,9 @@ def train():
 		x_cnn, x_sentence, y_sentence, mask = prep_batch_for_network(train_data,FLAGS.batch_size)
 		train_loss, norm = f_train(x_cnn, x_sentence, mask, y_sentence)
 		
-		duration = time.time() - start
 		
 		if step % FLAGS.print_freq == 0:
+			duration = time.time() - start
 			out =  \
 				'==================================================================================\n'+\
 				'Step \t%d/%d:\t train_loss =  %8e  \t norm %3.5f (%.4f sec)\n' % (step ,  max_steps , train_loss ,norm , duration)+\
@@ -219,15 +219,21 @@ def train():
 		start = time.time()
 
 		if step %FLAGS.check_freq == 0 and step != max_steps:
+			
 			file = session_name+'checkpoint_'+str(step)+'.csv'
 			f = open(file,'w+')
-			f.write("step,prediction,target,bleu-1,bleu-4,url\n")
+			f.write("id,prediction,target,bleu-1,bleu-4,url\n")
+			out =  \
+				'==================================================================================\n'+\
+				'Saving checkpoint at step %d\t in filename %s\n'%(step,file)+\
+				'==================================================================================\n'
+			print(out)
 			test_loss,test_bleu1,test_bleu4 = test_model(test_data,step,f,f_val)
 			duration = time.time() - start
 			out =  \
-					'==================================================================================\n'+\
-					'Step \t%d/%d:\t test_loss =  %8e \t bleu1 = %2.5f \t bleu4 %2.5f  (%.4f sec)\n' % (step ,  max_steps , test_loss ,test_bleu1,test_bleu4 , duration)+\
-					'==================================================================================\n'
+				'==================================================================================================\n'+\
+				'Step \t%d/%d:\t test_loss \t=  %2.8f \t bleu1 = %2.5f \t bleu4 %2.5f  (%.4f sec)\n' % (step ,  max_steps , test_loss ,test_bleu1,test_bleu4 , duration)+\
+				'==================================================================================================\n'
 			start = time.time()
 
 			line = '%s,%s,%s,%s\n'%(str(step),str(test_loss),str(test_bleu1),str(test_bleu4))
@@ -242,9 +248,9 @@ def train():
 			duration = time.time() - start
 
 			out =  \
-				'==================================================================================\n'+\
-				'Step \t%d/%d:\t test_loss =  %8e \t bleu1 = %2.5f \t bleu4 %2.5f  (%.4f sec)\n' % (step ,  max_steps , val_loss,val_bleu1,val_bleu4, duration)+\
-				'==================================================================================\n'
+				'==================================================================================================\n'+\
+				'Step \t%d/%d:\t validation_loss \t=  %2.8f \t bleu1 = %2.5f \t bleu4 %2.5f  (%.4f sec)\n' % (step ,  max_steps , val_loss,val_bleu1,val_bleu4, duration)+\
+				'==================================================================================================\n'
 			print(out)
 			line = '%s,%s,%s,%s\n'%(str(step),str(val_loss),str(val_bleu1),str(val_bleu4))
 			val_file.write(line)
@@ -354,7 +360,7 @@ def test_model(dataset,step,file,f_val,size=32):
 			pred = pred[0:real_length]
 			bleu1_chunk[k],bleu4_chunk[k] = bleuscore.bleu_score(sentence,pred)
 			# print('%s,%s,%s,%s,%s,%s\n'%(str(i),str(pred),str(sentence),str(bleu1_chunk[i]),str(bleu4_chunk[i]),str(url_chunk[i])))
-			file.write('%s,%s,%s,%s,%s,%s\n'%(str(k*(c+1)),'\"'+str(' '.join(pred))+'\"','\"'+str(' '.join(sentence))+'\"',str(bleu1_chunk[k]),str(bleu4_chunk[k]),str(url_chunk[k])))
+			file.write('%s,%s,%s,%s,%s,%s\n'%(str(k*(c)+1),'\"'+str(' '.join(pred))+'\"','\"'+str(' '.join(sentence))+'\"',str(bleu1_chunk[k][0]),str(bleu4_chunk[k][0]),str(url_chunk[k])))
 			file.flush()
 
 		total_bleu1 += np.sum(bleu1_chunk)

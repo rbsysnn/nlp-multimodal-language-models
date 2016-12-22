@@ -17,7 +17,3 @@ def bleu_score(reference,hypothesis):
 	return bleu_score,bleu_score_4gram
 
 		
-
-	
-# To see how it works
-b1,b2=bleu_score(['It', 'is', 'a', 'cat', 'in','a', 'room'],['It', 'is', 'a', 'cat', 'in','the', 'room'])
