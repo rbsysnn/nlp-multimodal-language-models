@@ -1,0 +1,17 @@
+max_sentence : 15
+embedding_size : 256
+val_freq : 1000
+eval_freq : 5000
+check_freq : 2500
+vocab_file : vocab.txt
+learning_rate : 0.0001
+caption_print : 10
+print_freq : 10
+seq_length : 16
+name : 50k_model_01d_nodrop
+val_size : 256
+batch_size : 32
+test_batch : 1000
+max_steps : 50000
+dropout : 0.0
+one_hot : False
