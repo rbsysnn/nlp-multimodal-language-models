@@ -32,6 +32,27 @@ def plot_loss():
     # Save
     plt.savefig('./'+FLAGS.setting+'/loss.png', format='png')
 
+def plot_reg_loss():
+    # Read data from CSV
+    train_data = np.genfromtxt('./'+FLAGS.setting+'/results.csv', delimiter=',', usecols=(0,2), names=True)
+    print(train_data.dtype.names)
+
+    # Create figure
+    fig = plt.figure()
+    plt.clf()
+    ax = fig.add_subplot(111)
+
+    # Plot data
+    ax.plot(train_data['Step'], train_data['Gradient_Norm'], color='g', label='train')
+
+    # Plot details
+    plt.title('L2 regularized loss')
+    plt.ylabel('loss')
+    plt.xlabel('step')
+    plt.legend(loc='upper right')
+
+    # Save
+    plt.savefig('./'+FLAGS.setting+'/regularized_loss.png', format='png')
 
 def plot_bleu_1():
     # Read data from CSV
@@ -116,6 +137,7 @@ def main(_):
         plot_bleu_4()
     elif FLAGS.plot_type == 'all':
         plot_loss()
+        plot_reg_loss()
         plot_bleu_1()
         plot_bleu_4()
         plot_bleu()
